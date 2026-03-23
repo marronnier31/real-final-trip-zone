@@ -128,6 +128,71 @@ npm run build
 - 프론트 라우트 기준: `frontend/src/router/AppRouter.jsx`
 - mock 데이터 기준: `frontend/src/data/siteData.js`
 
+## Oracle DB 연결 가이드
+
+백엔드는 Oracle 기준으로 붙이는 것을 전제로 한다.
+
+### 기준 원문
+
+- 실행 DDL 원문: `docs/tripzone-ddl-v2.sql`
+- DB 명세 요약: `docs/04_DB명세서.md`
+- 통합 설계 기준: `docs/tripzone-company-spec.md`
+
+### Oracle 기준 고정 사항
+
+- PK는 기본적으로 `NUMBER(10)` + 시퀀스 사용
+- 문자열은 `VARCHAR2`
+- 등록/수정일은 `REG_DATE`, `UPD_DATE`
+- soft-delete가 필요한 테이블은 `DELETED_AT` 사용
+- 날짜 기본값은 `SYSDATE`
+- 상태값은 문자열 컬럼 + `CHECK` 제약 기준으로 맞춘다
+
+### 추천 구현 순서
+
+1. `MEMBER_GRADES`, `USERS`, `USER_AUTH_PROVIDERS`, `USER_ROLES`
+2. `HOST_PROFILES`
+3. `EVENTS`, `COUPONS`, `USER_COUPONS`, `EVENT_COUPONS`
+4. `LODGINGS`, `ROOMS`, `LODGING_IMAGES`
+5. `BOOKINGS`, `PAYMENTS`
+6. `REVIEWS`, `REVIEW_IMAGES`, `WISHLISTS`
+7. `MILEAGE_HISTORY`, `USER_REFRESH_TOKENS`
+8. `INQUIRY_ROOMS`, `INQUIRY_MESSAGES`
+9. `AUDIT_LOGS`
+
+### 핵심 상태값
+
+- 회원 상태: `ACTIVE`, `DORMANT`, `BLOCKED`, `DELETED`
+- 판매자 상태: `PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED`
+- 예약 상태: `PENDING`, `CONFIRMED`, `CANCELED`, `COMPLETED`, `NO_SHOW`
+- 결제 상태: `READY`, `PAID`, `FAILED`, `CANCELED`, `PARTIAL_CANCELED`, `REFUNDED`
+- 문의 상태: `OPEN`, `ANSWERED`, `CLOSED`, `BLOCKED`
+
+### 프론트에서 바로 API로 치환할 지점
+
+- 인증 세션 mock: `frontend/src/utils/authSession.js`
+- 관리자/판매자 상태 변경 mock: `frontend/src/utils/mockStorage.js`
+- 문의센터 mock: `frontend/src/utils/myInquiryCenter.js`
+- 초기 화면 mock 데이터: `frontend/src/data/siteData.js`
+
+### 백엔드 팀원 체크리스트
+
+- 루트 패키지명은 `com.kh.trip`으로 고정
+- 문의 도메인은 `InquiryRoom`, `InquiryMessage` 2단 구조 유지
+- 프론트 라우트 기준 키는 `userId`, `lodgingId`, `roomId`, `bookingId`, `couponId` 중심으로 맞춘다
+- 예약/리뷰/문의 흐름은 프론트가 이미 연결돼 있으므로 응답 스키마만 맞추면 교체가 쉽다
+- 최신순 정렬이 필요한 화면은 API에서 정렬까지 내려주는 쪽이 안전하다
+- Oracle 제약/시퀀스 이름은 가능하면 DDL 원문을 그대로 따른다
+
+### 가장 먼저 붙이면 좋은 API
+
+1. 인증/세션
+2. 숙소 목록/상세/객실
+3. 예약/결제
+4. 마이페이지 예약/쿠폰/마일리지/결제내역
+5. 문의센터
+6. 판매자 관리
+7. 관리자 운영
+
 ## 주의
 
 - 현재 상태는 프론트 중심 구현 + mock 액션 기준이다.
