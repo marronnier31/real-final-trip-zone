@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { readAuthSession } from "../../utils/authSession";
 import { DateRangePopover } from "../../features/booking/BookingPanels";
@@ -8,7 +8,6 @@ import {
   buildRoomOptions,
   createInitialBookingForm,
   getBookingCtaHref,
-  getBookingLodging,
   getBookingSelections,
 } from "../../features/booking/bookingViewModel";
 import { formatBookingDate, parseISO, toISO } from "../../features/booking/bookingUtils";
@@ -18,32 +17,49 @@ import {
   getBookingPaymentOptions,
   getBookingStatusNotes,
 } from "../../services/bookingService";
-import { getLodgings } from "../../services/lodgingService";
+import { getLodgingDetailById } from "../../services/lodgingService";
 
 export default function BookingPage() {
   const { lodgingId } = useParams();
   const [searchParams] = useSearchParams();
-  const lodgings = getLodgings();
+  const [lodging, setLodging] = useState(null);
   const bookingChecklist = getBookingChecklist();
   const bookingCouponOptions = getBookingCouponOptions();
   const bookingPaymentOptions = getBookingPaymentOptions();
   const bookingStatusNotes = getBookingStatusNotes();
-  const lodging = getBookingLodging(lodgings, lodgingId);
   const authSession = readAuthSession();
-  const roomOptions = buildRoomOptions(lodging);
-  const [form, setForm] = useState(() =>
-    createInitialBookingForm(searchParams, roomOptions, lodging, bookingCouponOptions, bookingPaymentOptions),
-  );
+  const roomOptions = useMemo(() => (lodging ? buildRoomOptions(lodging) : []), [lodging]);
+  const [form, setForm] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
   const checkInRef = useRef(null);
   const checkOutRef = useRef(null);
   const calendarPanelRef = useRef(null);
   const [visibleMonth, setVisibleMonth] = useState(parseISO(searchParams.get("checkIn") ?? "2026-03-01") ?? new Date());
 
-  const { selectedCoupon, selectedPayment } = getBookingSelections(form, bookingCouponOptions, bookingPaymentOptions);
-  const { baseAmount, nightCount, serviceFee, roomTotal, totalAmount } = buildBookingPricing(lodging, form, selectedCoupon);
-  const ctaHref = getBookingCtaHref(authSession);
-  const statusSummary = authSession ? "로그인 완료 · 예약 정보 저장 가능" : "로그인 전 상태 · 예약 직전 로그인 필요";
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLodging() {
+      try {
+        const nextLodging = await getLodgingDetailById(lodgingId);
+        if (cancelled) return;
+        setLodging(nextLodging);
+      } catch (error) {
+        console.error("Failed to load booking lodging.", error);
+      }
+    }
+
+    loadLodging();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lodgingId]);
+
+  useEffect(() => {
+    if (!lodging || !roomOptions.length) return;
+    setForm(createInitialBookingForm(searchParams, roomOptions, lodging, bookingCouponOptions, bookingPaymentOptions));
+  }, [bookingCouponOptions, bookingPaymentOptions, lodging, roomOptions, searchParams]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -62,6 +78,21 @@ export default function BookingPage() {
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [openMenu]);
+
+  if (!lodging || !form) {
+    return (
+      <div className="container page-stack">
+        <section className="list-empty-state list-empty-state-full">
+          <strong>예약 정보를 불러오는 중입니다.</strong>
+          <p>숙소와 객실 데이터를 가져오고 있어요.</p>
+        </section>
+      </div>
+    );
+  }
+
+  const { selectedCoupon, selectedPayment } = getBookingSelections(form, bookingCouponOptions, bookingPaymentOptions);
+  const { baseAmount, nightCount, serviceFee, roomTotal, totalAmount } = buildBookingPricing(lodging, form, selectedCoupon);
+  const ctaHref = getBookingCtaHref(authSession);
 
   const handleDatePick = (day) => {
     const picked = toISO(day);

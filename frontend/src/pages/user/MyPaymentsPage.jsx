@@ -1,12 +1,40 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { getPaymentSummary } from "../../features/mypage/mypageViewModels";
 import { getMyBookings, getMyPayments } from "../../services/mypageService";
 
 export default function MyPaymentsPage() {
-  const myBookingRows = getMyBookings();
-  const paymentHistoryRows = getMyPayments();
+  const [myBookingRows, setMyBookingRows] = useState([]);
+  const [paymentHistoryRows, setPaymentHistoryRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { paidCount, refundedCount, recentPaidAmount, recentRefundedAmount } = getPaymentSummary(paymentHistoryRows);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadPayments() {
+      try {
+        setIsLoading(true);
+        const [bookings, payments] = await Promise.all([getMyBookings(), getMyPayments()]);
+        if (cancelled) return;
+        setMyBookingRows(bookings);
+        setPaymentHistoryRows(payments);
+      } catch (error) {
+        console.error("Failed to load my payments.", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadPayments();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <MyPageLayout>
@@ -33,6 +61,12 @@ export default function MyPaymentsPage() {
           </div>
         </div>
         <div className="payment-row-list">
+          {isLoading ? (
+            <div className="my-empty-panel">
+              <strong>결제 내역을 불러오는 중입니다.</strong>
+              <p>예약과 결제 데이터를 함께 불러오고 있습니다.</p>
+            </div>
+          ) : null}
           {paymentHistoryRows.map((item) => (
             <article key={item.bookingNo} className="payment-row">
               <div className="payment-row-main">
@@ -60,6 +94,12 @@ export default function MyPaymentsPage() {
               </div>
             </article>
           ))}
+          {!isLoading && !paymentHistoryRows.length ? (
+            <div className="my-empty-panel">
+              <strong>결제 내역이 없습니다.</strong>
+              <p>예약 후 결제가 완료되면 여기에 기록됩니다.</p>
+            </div>
+          ) : null}
         </div>
       </section>
     </MyPageLayout>

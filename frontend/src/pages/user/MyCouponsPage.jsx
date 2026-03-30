@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import {
   getCouponAmount,
@@ -7,16 +7,48 @@ import {
   getCouponToneClass,
   getCouponVisualClass,
 } from "../../features/mypage/mypageViewModels";
-import { getMyCoupons } from "../../services/mypageService";
+import { fetchMyCoupons } from "../../services/mypageService";
 
 export default function MyCouponsPage() {
   const [filter, setFilter] = useState("available");
-  const coupons = getMyCoupons();
+  const [coupons, setCoupons] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { expiringCount, filteredCoupons } = getCouponSummary(coupons, filter);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCoupons() {
+      try {
+        setIsLoading(true);
+        const rows = await fetchMyCoupons();
+        if (cancelled) return;
+        setCoupons(rows);
+      } catch (error) {
+        console.error("Failed to load my coupons.", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadCoupons();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <MyPageLayout>
       <section className="my-list-sheet coupon-sheet coupon-sheet-v2">
+        {isLoading ? (
+          <div className="my-empty-panel">
+            <strong>쿠폰함을 불러오는 중입니다.</strong>
+            <p>보유 쿠폰과 만료 상태를 동기화하고 있습니다.</p>
+          </div>
+        ) : null}
         <div className="mypage-header-row">
           <div className="mypage-header-copy">
             <strong>쿠폰 {coupons.length}장</strong>
@@ -74,11 +106,11 @@ export default function MyCouponsPage() {
             </article>
             ))}
           </div>
-        ) : (
+        ) : !isLoading ? (
           <div className="my-empty-inline">
             {filter === "available" ? "사용 가능한 보유 쿠폰이 없어요" : filter === "used" ? "사용 완료 쿠폰이 없어요" : "만료 예정 쿠폰이 없어요"}
           </div>
-        )}
+        ) : null}
       </section>
     </MyPageLayout>
   );

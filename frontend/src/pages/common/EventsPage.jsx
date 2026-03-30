@@ -1,14 +1,97 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { eventBanners, participationEventBanners, promoBanners } from "../../data/homeData";
-import { claimMyCoupon, getMyCoupons } from "../../services/mypageService";
+import { readAuthSession } from "../../features/auth/authSession";
+import { fetchLiveEvents } from "../../services/eventService";
+import { claimMyCoupon, fetchCouponCatalog, fetchMyCoupons } from "../../services/mypageService";
+
+function buildCouponEvent(coupon, index) {
+  return {
+    id: `coupon-${coupon.couponNo ?? coupon.id ?? index}`,
+    title: `${coupon.name}\n프로모션`,
+    subtitle: `${coupon.target} 예약에 적용되는 실쿠폰입니다.`,
+    action: "쿠폰 다운로드",
+    href: "/lodgings?theme=deal",
+    coupon,
+    heroTitle: `${coupon.name}\n다운로드`,
+    heroSubtitle: `${coupon.discountLabel} 혜택을 바로 쿠폰함에 추가합니다.`,
+    heroEyebrow: "Live Coupon",
+    heroMeta: `${coupon.target} · 실제 발급`,
+    detailTitle: coupon.name,
+    detailCopy: "실제 백엔드 쿠폰을 내려받아 마이페이지 쿠폰함과 바로 연결합니다.",
+  };
+}
 
 export default function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [claimedCoupons, setClaimedCoupons] = useState([]);
+  const [couponCatalog, setCouponCatalog] = useState([]);
+  const [liveEvents, setLiveEvents] = useState([]);
+  const [couponNotice, setCouponNotice] = useState("");
+  const session = readAuthSession();
+  const couponEvents = couponCatalog.length ? couponCatalog.map(buildCouponEvent) : eventBanners;
   const selectedEventId = searchParams.get("event");
-  const allEvents = [...eventBanners, ...participationEventBanners];
+  const participationEvents = liveEvents.length ? liveEvents : participationEventBanners;
+  const allEvents = [...couponEvents, ...participationEvents];
   const selectedEvent = allEvents.find((item) => item.id === selectedEventId) ?? null;
-  const claimedCoupons = getMyCoupons();
-  const isClaimed = selectedEvent?.coupon ? claimedCoupons.some((item) => item.id === selectedEvent.coupon.id) : false;
+  const isClaimed = useMemo(
+    () =>
+      selectedEvent?.coupon
+        ? claimedCoupons.some(
+            (item) =>
+              Number(item.id) === Number(selectedEvent.coupon.id) ||
+              item.couponName === selectedEvent.coupon.couponName,
+          )
+        : false,
+    [claimedCoupons, selectedEvent],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadEvents() {
+      try {
+        const rows = await fetchLiveEvents();
+        if (cancelled) return;
+        setLiveEvents(rows);
+      } catch (error) {
+        console.error("Failed to load live events.", error);
+      }
+    }
+
+    loadEvents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session?.accessToken) {
+      setClaimedCoupons([]);
+      setCouponCatalog([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function loadCoupons() {
+      try {
+        const [issuedRows, catalogRows] = await Promise.all([fetchMyCoupons(), fetchCouponCatalog()]);
+        if (cancelled) return;
+        setClaimedCoupons(issuedRows);
+        setCouponCatalog(catalogRows);
+      } catch (error) {
+        console.error("Failed to load event coupons.", error);
+      }
+    }
+
+    loadCoupons();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.accessToken]);
 
   const openEvent = (eventId) => {
     const nextParams = new URLSearchParams(searchParams);
@@ -22,10 +105,18 @@ export default function EventsPage() {
     setSearchParams(nextParams);
   };
 
-  const handleCouponClaim = () => {
+  const handleCouponClaim = async () => {
     if (!selectedEvent?.coupon || isClaimed) return;
-    claimMyCoupon(selectedEvent.coupon);
-    setSearchParams(new URLSearchParams(searchParams));
+
+    try {
+      const result = await claimMyCoupon(selectedEvent.coupon);
+      setClaimedCoupons(result.rows);
+      setCouponNotice("쿠폰이 쿠폰함에 추가되었습니다.");
+      setSearchParams(new URLSearchParams(searchParams));
+    } catch (error) {
+      console.error("Failed to claim coupon.", error);
+      setCouponNotice("쿠폰 발급에 실패했습니다.");
+    }
   };
 
   if (selectedEvent) {
@@ -82,7 +173,7 @@ export default function EventsPage() {
                   </Link>
                 )}
                 <div className="events-detail-side-note">
-                  <span>{selectedEvent.coupon ? (isClaimed ? "쿠폰함에 1장이 추가되었습니다." : "다운로드 후 쿠폰함 수량이 바로 반영됩니다.") : "참여 후 지급되는 보상은 이벤트 조건 달성 시 반영됩니다."}</span>
+                  <span>{selectedEvent.coupon ? (couponNotice || (isClaimed ? "쿠폰함에 1장이 추가되었습니다." : "다운로드 후 쿠폰함 수량이 바로 반영됩니다.")) : "참여 후 지급되는 보상은 이벤트 조건 달성 시 반영됩니다."}</span>
                 </div>
               </div>
 
@@ -110,7 +201,7 @@ export default function EventsPage() {
             <Link className="text-link" to="/lodgings?theme=deal">더보기</Link>
           </div>
           <div className="events-board-grid" aria-label="진행 중인 프로모션 목록">
-            {eventBanners.map((item) => (
+            {couponEvents.map((item) => (
               <button key={item.id} type="button" className="events-board-card" onClick={() => openEvent(item.id)}>
                 <span className="events-board-chip">Coupon Pack</span>
                 <strong>{item.title}</strong>
@@ -127,7 +218,7 @@ export default function EventsPage() {
             <Link className="text-link" to="/lodgings?theme=deal">더보기</Link>
           </div>
           <div className="events-board-grid" aria-label="참여형 이벤트 목록">
-            {participationEventBanners.map((item) => (
+            {participationEvents.map((item) => (
               <button key={item.id} type="button" className="events-board-card is-tall" onClick={() => openEvent(item.id)}>
                 <span className="events-board-chip is-soft">Event</span>
                 <strong>{item.title}</strong>

@@ -214,6 +214,6 @@ export function getSellerDashboardSnapshot() {
     metrics: getSellerMetrics(),
     lodgings: getSellerLodgings(),
     reservations: getSellerReservations(),
-    inquiries: getSellerInquiryRooms(),
+    inquiries: [],
   };
 }

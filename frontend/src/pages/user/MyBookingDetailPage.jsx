@@ -1,21 +1,57 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { getLodgings } from "../../services/lodgingService";
 import { getMyBookingById, getMyPaymentByBookingId } from "../../services/mypageService";
 
-const lodgings = getLodgings();
-const lodgingMap = Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging]));
-
 export default function MyBookingDetailPage() {
   const { bookingId } = useParams();
-  const booking = getMyBookingById(bookingId);
+  const [lodgings, setLodgings] = useState([]);
+  const [booking, setBooking] = useState(null);
+  const [payment, setPayment] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBookingDetail() {
+      try {
+        setIsLoading(true);
+        const [rows, bookingRow, paymentRow] = await Promise.all([
+          getLodgings(),
+          getMyBookingById(bookingId),
+          getMyPaymentByBookingId(bookingId),
+        ]);
+        if (cancelled) return;
+        setLodgings(rows);
+        setBooking(bookingRow);
+        setPayment(paymentRow);
+      } catch (error) {
+        console.error("Failed to load booking detail lodging.", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadBookingDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (isLoading) {
+    return <MyPageLayout eyebrow="예약 상세" title="예약 상세를 불러오는 중입니다." />;
+  }
 
   if (!booking) {
     return <MyPageLayout eyebrow="예약 상세" title="예약 정보를 찾을 수 없습니다." />;
   }
 
   const lodging = lodgingMap[booking.lodgingId];
-  const payment = getMyPaymentByBookingId(booking.bookingId);
   const statusLabel = booking.bookingStatusLabel ?? booking.status;
   const overviewItems = [
     { label: "예약 일정", value: booking.stay },

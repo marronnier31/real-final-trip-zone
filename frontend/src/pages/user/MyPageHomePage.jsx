@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import {
@@ -7,36 +8,83 @@ import {
   paymentHistoryRows,
   wishlistRows,
 } from "../../data/mypageData";
-import { getMyCoupons } from "../../services/mypageService";
+import { getMyCoupons, getMyHome } from "../../services/mypageService";
 
 export default function MyPageHomePage() {
-  const coupons = getMyCoupons();
-  const upcomingCount = myBookingRows.filter((item) => item.status !== "COMPLETED").length;
-  const availableCouponCount = coupons.filter((item) => item.status === "사용 가능").length;
-  const paidCount = paymentHistoryRows.filter((item) => item.status === "PAID").length;
-  const nextTrip = myBookingRows.find((item) => item.status !== "COMPLETED") ?? myBookingRows[0];
+  const [homeData, setHomeData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMyHome() {
+      try {
+        setIsLoading(true);
+        const response = await getMyHome();
+        if (cancelled) return;
+        setHomeData(response);
+      } catch (error) {
+        console.error("Failed to load mypage home.", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadMyHome();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const coupons = getMyCoupons();
+  const fallbackUpcomingCount = myBookingRows.filter((item) => item.status !== "COMPLETED").length;
+  const fallbackAvailableCouponCount = coupons.filter((item) => item.status === "사용 가능").length;
+  const fallbackPaidCount = paymentHistoryRows.filter((item) => item.status === "PAID").length;
+  const fallbackNextTrip = myBookingRows.find((item) => item.status !== "COMPLETED") ?? myBookingRows[0];
+  const profileSummary = homeData?.profileSummary ?? myProfileSummary;
+  const overview = homeData?.overview;
+  const upcomingCount = overview?.upcomingBookingCount ?? fallbackUpcomingCount;
+  const availableCouponCount = overview?.availableCouponCount ?? fallbackAvailableCouponCount;
+  const paidCount = overview?.paidCount ?? fallbackPaidCount;
   const overviewItems = [
     { label: "예약중", value: `${upcomingCount}건`, href: "/my/bookings" },
-    { label: "찜 목록", value: `${wishlistRows.length}건`, href: "/my/wishlist" },
+    { label: "찜 목록", value: `${overview?.wishlistCount ?? wishlistRows.length}건`, href: "/my/wishlist" },
     { label: "사용 가능 쿠폰", value: `${availableCouponCount}장`, href: "/my/coupons" },
     { label: "결제 완료", value: `${paidCount}건`, href: "/my/payments" },
   ];
+  const nextTrip = useMemo(() => fallbackNextTrip, [fallbackNextTrip]);
+  const shortcutItems = useMemo(() => {
+    const menuMap = new Map((homeData?.menus ?? []).map((item) => [item.href, item]));
+    return myPageSections.map((item) => ({
+      ...item,
+      title: menuMap.get(item.href)?.title ?? item.title,
+      subtitle: menuMap.get(item.href)?.subtitle ?? item.subtitle,
+    }));
+  }, [homeData?.menus]);
 
   return (
     <MyPageLayout>
       <section className="my-list-sheet my-home-sheet">
+        {isLoading ? (
+          <div className="my-empty-panel">
+            <strong>마이페이지 요약을 불러오는 중입니다.</strong>
+            <p>회원 요약 정보와 바로가기 메뉴를 동기화하고 있습니다.</p>
+          </div>
+        ) : null}
         <section className="my-home-hero">
           <Link to="/my/membership" className="my-home-topline my-home-topline-link">
             <div className="my-home-topline-copy">
               <span className="my-home-label">MY PAGE</span>
-              <strong>{myProfileSummary.name}</strong>
-              <p>{myProfileSummary.gradeHint}</p>
+              <strong>{profileSummary.name}</strong>
+              <p>{profileSummary.gradeHint}</p>
             </div>
             <div className="my-home-topline-meta">
-              <span className="my-stat-pill is-mint">{myProfileSummary.status}</span>
-              <span className="my-stat-pill">{myProfileSummary.grade} 회원</span>
-              <span className="my-stat-pill is-soft">{myProfileSummary.joinedAt}</span>
+              <span className="my-stat-pill is-mint">{profileSummary.status}</span>
+              <span className="my-stat-pill">{profileSummary.grade} 회원</span>
+              <span className="my-stat-pill is-soft">{profileSummary.joinedAt}</span>
             </div>
           </Link>
 
@@ -71,7 +119,7 @@ export default function MyPageHomePage() {
             </div>
           </div>
           <div className="my-home-shortcut-grid">
-            {myPageSections.map((item) => (
+            {shortcutItems.map((item) => (
               <Link key={item.href} to={item.href} className={`my-home-shortcut-card is-${item.accent}`}>
                 <span className={`my-home-shortcut-icon is-${item.accent}`} aria-hidden="true">{item.icon}</span>
                 <div className="my-home-shortcut-copy">

@@ -1,16 +1,51 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { lodgings } from "../../data/lodgingData";
-import { wishlistRows } from "../../data/mypageData";
-
-const lodgingMap = Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging]));
+import { getLodgings } from "../../services/lodgingService";
+import { getMyWishlist } from "../../services/mypageService";
 
 export default function MyWishlistPage() {
+  const [wishlistRows, setWishlistRows] = useState([]);
+  const [lodgings, setLodgings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
   const instantCount = wishlistRows.filter((item) => item.status.includes("즉시")).length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadWishlist() {
+      try {
+        setIsLoading(true);
+        const [nextWishlist, nextLodgings] = await Promise.all([getMyWishlist(), getLodgings()]);
+        if (cancelled) return;
+        setWishlistRows(nextWishlist);
+        setLodgings(nextLodgings);
+      } catch (error) {
+        console.error("Failed to load wishlist.", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadWishlist();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <MyPageLayout>
       <section className="my-list-sheet wishlist-sheet wishlist-sheet-v2">
+        {isLoading ? (
+          <div className="my-empty-panel">
+            <strong>찜 목록을 불러오는 중입니다.</strong>
+            <p>찜한 숙소와 숙소 상세 정보를 함께 동기화하고 있습니다.</p>
+          </div>
+        ) : null}
         <div className="mypage-header-row">
           <div className="mypage-header-copy">
             <strong>찜 목록</strong>
@@ -57,6 +92,12 @@ export default function MyWishlistPage() {
               </div>
             </article>
           ))}
+          {!isLoading && !wishlistRows.length ? (
+            <div className="my-empty-panel">
+              <strong>찜한 숙소가 없습니다.</strong>
+              <p>마음에 드는 숙소를 찜하면 여기에 모아볼 수 있습니다.</p>
+            </div>
+          ) : null}
         </div>
       </section>
 

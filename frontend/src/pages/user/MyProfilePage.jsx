@@ -4,16 +4,47 @@ import MyPageLayout from "../../components/user/MyPageLayout";
 import { myProfileDetails, myProfileSummary } from "../../data/mypageData";
 import { getProfileFieldGroups } from "../../features/mypage/mypageViewModels";
 import { clearAuthSession } from "../../utils/authSession";
+import { useEffect } from "react";
+import { getMyProfileDetails, getMyProfileSummary } from "../../services/mypageService";
 
 export default function MyProfilePage() {
   const navigate = useNavigate();
-  const { accountInfoRows, accountMetaRows } = getProfileFieldGroups(myProfileDetails);
+  const [summary, setSummary] = useState(myProfileSummary);
+  const [details, setDetails] = useState(myProfileDetails);
+  const [isLoading, setIsLoading] = useState(true);
+  const { accountInfoRows, accountMetaRows } = getProfileFieldGroups(details);
   const [isPasswordEditing, setIsPasswordEditing] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
     nextPassword: "",
     confirmPassword: "",
   });
   const [passwordFeedback, setPasswordFeedback] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfile() {
+      try {
+        setIsLoading(true);
+        const [nextSummary, nextDetails] = await Promise.all([getMyProfileSummary(), getMyProfileDetails()]);
+        if (cancelled) return;
+        setSummary(nextSummary);
+        setDetails(nextDetails);
+      } catch (error) {
+        console.error("Failed to load my profile.", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handlePasswordChange = (key, value) => {
     setPasswordForm((current) => ({ ...current, [key]: value }));
@@ -58,6 +89,12 @@ export default function MyProfilePage() {
   return (
     <MyPageLayout>
       <section className="my-list-sheet profile-sheet profile-sheet-v2">
+        {isLoading ? (
+          <div className="my-empty-panel">
+            <strong>회원 정보를 불러오는 중입니다.</strong>
+            <p>프로필 요약과 계정 정보를 동기화하고 있습니다.</p>
+          </div>
+        ) : null}
         <div className="mypage-section-top">
           <strong>내 정보 관리</strong>
         </div>
@@ -146,9 +183,9 @@ export default function MyProfilePage() {
           </div>
         </section>
         <section className="profile-summary-note">
-          <span>{myProfileSummary.status}</span>
-          <span>{myProfileSummary.grade} 등급</span>
-          <span>{myProfileSummary.joinedAt}</span>
+          <span>{summary.status}</span>
+          <span>{summary.grade} 등급</span>
+          <span>{summary.joinedAt}</span>
           {passwordFeedback ? <span>{passwordFeedback}</span> : null}
         </section>
         <section className="profile-device-strip">

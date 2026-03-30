@@ -1,5 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
 import { myProfileSummary } from "../../data/mypageData";
+import { readAuthSession } from "../../features/auth/authSession";
 
 const ITEMS = [
   { to: "/my/bookings", label: "예약 내역" },
@@ -13,6 +14,9 @@ const ITEMS = [
 ];
 
 export default function MyPageSidebar() {
+  const session = readAuthSession();
+  const profileName = session?.name ?? myProfileSummary.name;
+
   return (
     <aside className="my-sidebar">
       <Link to="/my/membership" className="my-sidebar-profile">
@@ -21,7 +25,7 @@ export default function MyPageSidebar() {
           <span className="my-sidebar-mark-sun" />
         </div>
         <div className="my-sidebar-copy">
-          <strong>{myProfileSummary.name}</strong>
+          <strong>{profileName}</strong>
           <p>{myProfileSummary.grade} 회원</p>
         </div>
       </Link>

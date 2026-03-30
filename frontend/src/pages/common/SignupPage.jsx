@@ -1,17 +1,69 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authProviders, defaultSignupForm } from "../../data/authData";
-import { getAuthProviderMark } from "../../features/auth/authViewModels";
+import {
+  getAuthProviderMark,
+  getKakaoAuthUrl,
+  getNaverAuthUrl,
+  loginWithGooglePopup,
+  loginWithSessionPayload,
+  signupWithCredentials,
+} from "../../features/auth/authViewModels";
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(defaultSignupForm);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const canSubmit = form.name.trim() && form.email.trim() && form.phone.trim() && form.password.trim();
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!canSubmit) return;
-    navigate("/login");
+    if (!canSubmit || isSubmitting) return;
+
+    setErrorMessage("");
+    setSuccessMessage("");
+    setIsSubmitting(true);
+
+    try {
+      await signupWithCredentials({
+        ...form,
+        phone: form.phone.trim().replace(/[^\d]/g, ""),
+      });
+      setSuccessMessage("회원가입이 완료되었습니다. 로그인해 주세요.");
+      navigate("/login", {
+        state: {
+          email: form.email.trim(),
+          registered: true,
+        },
+      });
+    } catch (error) {
+      setErrorMessage(error.message || "회원가입에 실패했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSocialSignup = async (providerKey) => {
+    setErrorMessage("");
+
+    try {
+      if (providerKey === "KAKAO") {
+        window.location.href = getKakaoAuthUrl();
+        return;
+      }
+
+      if (providerKey === "NAVER") {
+        window.location.href = getNaverAuthUrl();
+        return;
+      }
+
+      const session = await loginWithGooglePopup();
+      navigate(loginWithSessionPayload(session));
+    } catch (error) {
+      setErrorMessage(error.message || "소셜 회원가입에 실패했습니다.");
+    }
   };
 
   return (
@@ -95,8 +147,11 @@ export default function SignupPage() {
             <span>혜택 및 특가 알림 수신</span>
           </label>
 
-          <button className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`} type="submit">
-            회원가입
+          {errorMessage ? <p className="auth-feedback-message" role="alert">{errorMessage}</p> : null}
+          {successMessage ? <p className="auth-feedback-message is-success">{successMessage}</p> : null}
+
+          <button className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`} type="submit" disabled={!canSubmit || isSubmitting}>
+            {isSubmitting ? "가입 중..." : "회원가입"}
           </button>
 
           <div className="auth-divider">
@@ -111,7 +166,7 @@ export default function SignupPage() {
                   key={provider.key}
                   type="button"
                   className={`auth-provider-line auth-provider-${provider.key.toLowerCase()}`}
-                  onClick={() => navigate("/login")}
+                  onClick={() => handleSocialSignup(provider.key)}
                 >
                   <span className="auth-provider-mark" aria-hidden="true">
                     {getAuthProviderMark(provider.key)}

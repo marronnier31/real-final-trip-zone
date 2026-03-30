@@ -12,7 +12,7 @@ import {
   toISO,
 } from "./homeUtils";
 
-function CalendarMonth({ baseDate, startDate, endDate, onPick }) {
+function CalendarMonth({ baseDate, startDate, endDate, onPick, controls = null }) {
   const days = monthGrid(baseDate);
 
   return (
@@ -21,6 +21,7 @@ function CalendarMonth({ baseDate, startDate, endDate, onPick }) {
         <strong>
           {baseDate.getFullYear()}.{String(baseDate.getMonth() + 1).padStart(2, "0")}
         </strong>
+        {controls}
       </div>
       <div className="calendar-week-row">
         {WEEK_DAYS.map((day) => (
@@ -252,16 +253,23 @@ export function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setV
         maxHeight: `${position.maxHeight}px`,
       }}
     >
-      <div className="calendar-toolbar">
-        <button type="button" className="calendar-nav" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>
-          이전
-        </button>
-        <button type="button" className="calendar-nav" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>
-          다음
-        </button>
-      </div>
       <div className="calendar-month-grid" style={{ gridTemplateColumns: position.isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
-        <CalendarMonth baseDate={visibleMonth} startDate={startDate} endDate={endDate} onPick={onPick} />
+        <CalendarMonth
+          baseDate={visibleMonth}
+          startDate={startDate}
+          endDate={endDate}
+          onPick={onPick}
+          controls={(
+            <div className="calendar-toolbar">
+              <button type="button" className="calendar-nav" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1))}>
+                이전
+              </button>
+              <button type="button" className="calendar-nav" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>
+                다음
+              </button>
+            </div>
+          )}
+        />
         {!position.isMobile ? (
           <CalendarMonth
             baseDate={new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1)}

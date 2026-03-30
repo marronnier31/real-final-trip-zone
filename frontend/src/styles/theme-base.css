@@ -34,6 +34,24 @@
   --my-row-image-height: 118px;
 }
 
+@keyframes brand-float {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(0, -4px, 0) rotate(-2deg) scale(1.04); }
+  100% { transform: translate3d(0, 1px, 0) rotate(1.4deg) scale(1.01); }
+}
+
+@keyframes brand-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes brand-sheen {
+  0% { transform: translateX(-135%) skewX(-18deg); opacity: 0; }
+  16% { opacity: 0.32; }
+  40% { opacity: 0.08; }
+  100% { transform: translateX(150%) skewX(-18deg); opacity: 0; }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -111,42 +129,76 @@ button {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   font-weight: 800;
   letter-spacing: -0.03em;
+  position: relative;
 }
 
 .brand-mark {
   position: relative;
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0d7d85 0%, #29b7b0 55%, #ffd38d 100%);
-  box-shadow: 0 12px 24px rgba(14, 104, 98, 0.18);
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background:
+    linear-gradient(160deg, #08746d 0%, #28b8af 52%, #ffe2a1 100%);
+  box-shadow:
+    0 22px 34px rgba(10, 91, 88, 0.3),
+    0 6px 12px rgba(10, 91, 88, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.38);
   overflow: hidden;
   flex-shrink: 0;
+  transform-style: preserve-3d;
+  animation: brand-float 5.4s ease-in-out infinite;
+}
+
+.brand-mark::before,
+.brand-mark::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.brand-mark::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), transparent 34%, rgba(255, 214, 152, 0.16) 70%, transparent);
+  opacity: 0.86;
+}
+
+.brand-mark::after {
+  inset: -8px;
+  border: 1px solid rgba(122, 212, 206, 0.5);
+  opacity: 0.8;
+  animation: brand-orbit 7.4s linear infinite;
 }
 
 .brand-mark-wave {
   position: absolute;
-  left: -4px;
+  left: -6px;
   right: -4px;
-  bottom: 7px;
-  height: 13px;
+  bottom: 8px;
+  height: 16px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.92);
-  transform: rotate(-7deg);
+  transform: rotate(-8deg) translateZ(8px);
+  box-shadow:
+    0 8px 12px rgba(7, 73, 67, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.74);
 }
 
 .brand-mark-sun {
   position: absolute;
-  right: 8px;
-  top: 8px;
-  width: 11px;
-  height: 11px;
+  right: 10px;
+  top: 10px;
+  width: 13px;
+  height: 13px;
   border-radius: 999px;
   background: #fff6d8;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.18),
+    0 0 18px rgba(255, 234, 163, 0.58);
+  transform: translateZ(10px);
 }
 
 .brand-copy {
@@ -155,17 +207,42 @@ button {
 }
 
 .brand-main {
-  font-size: 24px;
+  font-size: 32px;
   line-height: 1;
-  color: #0b6660;
+  position: relative;
+  color: #176d67;
+  background: linear-gradient(180deg, #238980 0%, #146a64 54%, #0b5752 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.34),
+    0 2px 0 rgba(8, 97, 92, 0.18),
+    0 6px 10px rgba(8, 97, 92, 0.1);
+  filter: none;
+}
+
+.brand-main::after {
+  content: "";
+  position: absolute;
+  top: -18%;
+  bottom: -18%;
+  left: -10%;
+  width: 34%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+  transform: translateX(-135%) skewX(-18deg);
+  animation: brand-sheen 8.6s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.18;
 }
 
 .brand-sub {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #6f8e89;
+  opacity: 0.88;
 }
 
 .header-nav {

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import {
@@ -5,20 +6,43 @@ import {
   membershipMilestones,
   myProfileSummary,
 } from "../../data/mypageData";
+import { getMyProfileSummary } from "../../services/mypageService";
 
 export default function MyMembershipPage() {
+  const [profileSummary, setProfileSummary] = useState(myProfileSummary);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProfileSummary() {
+      try {
+        const response = await getMyProfileSummary();
+        if (cancelled) return;
+        setProfileSummary(response);
+      } catch (error) {
+        console.error("Failed to load membership profile summary.", error);
+      }
+    }
+
+    loadProfileSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <MyPageLayout>
       <section className="my-list-sheet membership-sheet">
         <header className="membership-hero">
           <div className="membership-hero-copy">
             <span className="membership-hero-eyebrow">Membership</span>
-            <strong>{myProfileSummary.grade} 등급 혜택</strong>
+            <strong>{profileSummary.grade} 등급 혜택</strong>
             <p>TripZone 회원 등급은 최근 예약 활동과 누적 이용 흐름에 따라 안내되며, 현재 페이지는 혜택 확인용으로만 제공합니다.</p>
           </div>
           <div className="membership-hero-badge">
             <span>현재 등급</span>
-            <strong>{myProfileSummary.grade}</strong>
+            <strong>{profileSummary.grade}</strong>
           </div>
         </header>
 
@@ -33,13 +57,13 @@ export default function MyMembershipPage() {
 
         <section className="membership-tier-list" aria-label="등급별 혜택">
           {membershipBenefitTiers.map((tier) => (
-            <article key={tier.grade} className={`membership-tier-card${tier.grade === myProfileSummary.grade ? " is-current" : ""}`}>
+            <article key={tier.grade} className={`membership-tier-card${tier.grade === profileSummary.grade ? " is-current" : ""}`}>
               <div className="membership-tier-head">
                 <div>
-                  <span>{tier.grade === myProfileSummary.grade ? "현재 적용 중" : "멤버십 안내"}</span>
+                  <span>{tier.grade === profileSummary.grade ? "현재 적용 중" : "멤버십 안내"}</span>
                   <strong>{tier.grade}</strong>
                 </div>
-                {tier.grade === myProfileSummary.grade ? <em>현재 등급</em> : null}
+                {tier.grade === profileSummary.grade ? <em>현재 등급</em> : null}
               </div>
               <p>{tier.summary}</p>
               <ul className="membership-benefit-list">

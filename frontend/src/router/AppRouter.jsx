@@ -1,10 +1,12 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import AppShell from "../components/layout/AppShell";
+import { readAuthSession } from "../features/auth/authSession";
 import HomePage from "../pages/common/HomePage";
 import DocsPage from "../pages/common/DocsPage";
 import RolesPage from "../pages/common/RolesPage";
 import LoginPage from "../pages/common/LoginPage";
 import SignupPage from "../pages/common/SignupPage";
+import AuthCallbackPage from "../pages/common/AuthCallbackPage";
 import FindIdPage from "../pages/common/FindIdPage";
 import FindPasswordPage from "../pages/common/FindPasswordPage";
 import EventsPage from "../pages/common/EventsPage";
@@ -41,6 +43,21 @@ import AdminReviewsPage from "../pages/admin/AdminReviewsPage";
 import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage";
 import SubmissionHtmlRedirect from "./SubmissionHtmlRedirect";
 
+function RequireRole({ allowedRoles, children }) {
+  const session = readAuthSession();
+  const roleNames = session?.roleNames ?? (session?.role ? [session.role] : []);
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles.length && !allowedRoles.some((role) => roleNames.includes(role))) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
@@ -52,41 +69,43 @@ export default function AppRouter() {
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/auth/kakao/callback" element={<AuthCallbackPage />} />
+          <Route path="/auth/naver/callback" element={<AuthCallbackPage />} />
           <Route path="/find-id" element={<FindIdPage />} />
           <Route path="/find-password" element={<FindPasswordPage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/lodgings" element={<LodgingListPage />} />
           <Route path="/lodgings/:lodgingId" element={<LodgingDetailPage />} />
           <Route path="/booking/:lodgingId" element={<BookingPage />} />
-          <Route path="/my" element={<MyPageHomePage />} />
-          <Route path="/my/home" element={<MyPageHomePage />} />
-          <Route path="/my/profile" element={<MyProfilePage />} />
-          <Route path="/my/bookings" element={<MyBookingsPage />} />
-          <Route path="/my/bookings/:bookingId" element={<MyBookingDetailPage />} />
-          <Route path="/my/inquiries" element={<MyInquiriesPage />} />
-          <Route path="/my/inquiries/new" element={<MyInquiryCreatePage />} />
-          <Route path="/my/inquiries/:inquiryId" element={<MyInquiryDetailPage />} />
-          <Route path="/my/inquiries/:inquiryId/edit" element={<MyInquiryEditPage />} />
-          <Route path="/my/wishlist" element={<MyWishlistPage />} />
-          <Route path="/my/coupons" element={<MyCouponsPage />} />
-          <Route path="/my/mileage" element={<MyMileagePage />} />
-          <Route path="/my/payments" element={<MyPaymentsPage />} />
-          <Route path="/my/membership" element={<MyMembershipPage />} />
-          <Route path="/my/seller-apply" element={<MySellerApplyPage />} />
-          <Route path="/seller" element={<SellerDashboardPage />} />
-          <Route path="/seller/apply" element={<SellerApplyPage />} />
-          <Route path="/seller/lodgings" element={<SellerLodgingsPage />} />
-          <Route path="/seller/rooms" element={<SellerRoomsPage />} />
-          <Route path="/seller/assets" element={<SellerAssetsPage />} />
-          <Route path="/seller/reservations" element={<SellerReservationsPage />} />
-          <Route path="/seller/inquiries" element={<SellerInquiriesPage />} />
-          <Route path="/admin" element={<AdminDashboardPage />} />
-          <Route path="/admin/users" element={<AdminUsersPage />} />
-          <Route path="/admin/sellers" element={<AdminSellersPage />} />
-          <Route path="/admin/events" element={<AdminEventsPage />} />
-          <Route path="/admin/inquiries" element={<AdminInquiriesPage />} />
-          <Route path="/admin/reviews" element={<AdminReviewsPage />} />
-          <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
+          <Route path="/my" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyPageHomePage /></RequireRole>} />
+          <Route path="/my/home" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyPageHomePage /></RequireRole>} />
+          <Route path="/my/profile" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyProfilePage /></RequireRole>} />
+          <Route path="/my/bookings" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyBookingsPage /></RequireRole>} />
+          <Route path="/my/bookings/:bookingId" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyBookingDetailPage /></RequireRole>} />
+          <Route path="/my/inquiries" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyInquiriesPage /></RequireRole>} />
+          <Route path="/my/inquiries/new" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyInquiryCreatePage /></RequireRole>} />
+          <Route path="/my/inquiries/:inquiryId" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyInquiryDetailPage /></RequireRole>} />
+          <Route path="/my/inquiries/:inquiryId/edit" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyInquiryEditPage /></RequireRole>} />
+          <Route path="/my/wishlist" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyWishlistPage /></RequireRole>} />
+          <Route path="/my/coupons" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyCouponsPage /></RequireRole>} />
+          <Route path="/my/mileage" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyMileagePage /></RequireRole>} />
+          <Route path="/my/payments" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyPaymentsPage /></RequireRole>} />
+          <Route path="/my/membership" element={<RequireRole allowedRoles={["ROLE_USER"]}><MyMembershipPage /></RequireRole>} />
+          <Route path="/my/seller-apply" element={<RequireRole allowedRoles={["ROLE_USER"]}><MySellerApplyPage /></RequireRole>} />
+          <Route path="/seller" element={<RequireRole allowedRoles={["ROLE_HOST"]}><SellerDashboardPage /></RequireRole>} />
+          <Route path="/seller/apply" element={<RequireRole allowedRoles={["ROLE_HOST"]}><SellerApplyPage /></RequireRole>} />
+          <Route path="/seller/lodgings" element={<RequireRole allowedRoles={["ROLE_HOST"]}><SellerLodgingsPage /></RequireRole>} />
+          <Route path="/seller/rooms" element={<RequireRole allowedRoles={["ROLE_HOST"]}><SellerRoomsPage /></RequireRole>} />
+          <Route path="/seller/assets" element={<RequireRole allowedRoles={["ROLE_HOST"]}><SellerAssetsPage /></RequireRole>} />
+          <Route path="/seller/reservations" element={<RequireRole allowedRoles={["ROLE_HOST"]}><SellerReservationsPage /></RequireRole>} />
+          <Route path="/seller/inquiries" element={<RequireRole allowedRoles={["ROLE_HOST"]}><SellerInquiriesPage /></RequireRole>} />
+          <Route path="/admin" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminDashboardPage /></RequireRole>} />
+          <Route path="/admin/users" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminUsersPage /></RequireRole>} />
+          <Route path="/admin/sellers" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminSellersPage /></RequireRole>} />
+          <Route path="/admin/events" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminEventsPage /></RequireRole>} />
+          <Route path="/admin/inquiries" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminInquiriesPage /></RequireRole>} />
+          <Route path="/admin/reviews" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminReviewsPage /></RequireRole>} />
+          <Route path="/admin/audit-logs" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminAuditLogsPage /></RequireRole>} />
         </Route>
       </Routes>
     </BrowserRouter>

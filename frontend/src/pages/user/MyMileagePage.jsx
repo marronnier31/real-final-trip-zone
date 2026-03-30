@@ -1,15 +1,48 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import { mileageHistoryRows } from "../../data/mypageData";
 import { getMileageSummary } from "../../features/mypage/mypageViewModels";
+import { getMyMileage } from "../../services/mypageService";
 
 export default function MyMileagePage() {
   const [filter, setFilter] = useState("all");
-  const { earnedThisMonth, usedThisMonth, filteredRows } = getMileageSummary(mileageHistoryRows, filter);
+  const [mileageData, setMileageData] = useState({ summary: { balance: 0, earnedThisMonth: 0, usedThisMonth: 0 }, items: [] });
+  const [isLoading, setIsLoading] = useState(true);
+  const { earnedThisMonth, usedThisMonth, filteredRows } = getMileageSummary(mileageData.items, filter);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMileage() {
+      try {
+        setIsLoading(true);
+        const response = await getMyMileage();
+        if (cancelled) return;
+        setMileageData(response);
+      } catch (error) {
+        console.error("Failed to load mileage history.", error);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadMileage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <MyPageLayout>
       <section className="my-list-sheet mileage-sheet mileage-sheet-v2">
+        {isLoading ? (
+          <div className="my-empty-panel">
+            <strong>마일리지 내역을 불러오는 중입니다.</strong>
+            <p>보유 포인트와 적립/사용 이력을 동기화하고 있습니다.</p>
+          </div>
+        ) : null}
         <div className="mypage-header-row">
           <div className="mypage-header-copy">
             <strong>마일리지</strong>
@@ -19,7 +52,7 @@ export default function MyMileagePage() {
         <section className="mileage-hero-card">
           <div className="mileage-hero-main">
             <span>내 마일리지</span>
-            <strong>18,400P</strong>
+            <strong>{Number(mileageData.summary?.balance ?? 0).toLocaleString()}P</strong>
             <p>다음 예약 결제에서 바로 사용할 수 있는 보유 혜택</p>
           </div>
           <div className="mileage-hero-stats">
@@ -60,9 +93,9 @@ export default function MyMileagePage() {
             </article>
             ))}
           </div>
-        ) : (
+        ) : !isLoading ? (
           <div className="my-empty-inline">포인트 내역이 없어요</div>
-        )}
+        ) : null}
       </section>
     </MyPageLayout>
   );

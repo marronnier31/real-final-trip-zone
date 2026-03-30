@@ -2,18 +2,20 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authProviders, defaultLoginForm, demoLoginAccounts } from "../../data/authData";
 import {
-  createDefaultLocalSession,
-  createDemoAccountSession,
-  createSocialSession,
-  findDemoLoginAccount,
   getAuthProviderMark,
+  getKakaoAuthUrl,
+  getNaverAuthUrl,
   getSelectedAuthProvider,
+  loginWithCredentials,
+  loginWithGooglePopup,
   loginWithSessionPayload,
 } from "../../features/auth/authViewModels";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState(defaultLoginForm);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const selectedProvider = getSelectedAuthProvider(form.provider);
   const canSubmit = form.email.trim() && form.password.trim();
 
@@ -21,17 +23,42 @@ export default function LoginPage() {
     navigate(loginWithSessionPayload(payload));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!canSubmit) return;
-    const matchedDemoAccount = findDemoLoginAccount(form.email, form.password);
+    if (!canSubmit || isSubmitting) return;
 
-    if (matchedDemoAccount) {
-      commitSession(createDemoAccountSession(matchedDemoAccount, form.provider));
-      return;
+    setErrorMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const session = await loginWithCredentials(form);
+      commitSession(session);
+    } catch (error) {
+      setErrorMessage(error.message || "로그인에 실패했습니다.");
+    } finally {
+      setIsSubmitting(false);
     }
+  };
 
-    commitSession(createDefaultLocalSession(form));
+  const handleSocialLogin = async (providerKey) => {
+    setErrorMessage("");
+
+    try {
+      if (providerKey === "KAKAO") {
+        window.location.href = getKakaoAuthUrl();
+        return;
+      }
+
+      if (providerKey === "NAVER") {
+        window.location.href = getNaverAuthUrl();
+        return;
+      }
+
+      const session = await loginWithGooglePopup();
+      commitSession(session);
+    } catch (error) {
+      setErrorMessage(error.message || "소셜 로그인에 실패했습니다.");
+    }
   };
 
   return (
@@ -104,8 +131,10 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <button className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`} type="submit">
-            로그인
+          {errorMessage ? <p className="auth-feedback-message" role="alert">{errorMessage}</p> : null}
+
+          <button className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`} type="submit" disabled={!canSubmit || isSubmitting}>
+            {isSubmitting ? "로그인 중..." : "로그인"}
           </button>
 
           <div className="auth-divider">
@@ -120,9 +149,7 @@ export default function LoginPage() {
                   key={provider.key}
                   type="button"
                   className={`auth-provider-line auth-provider-${provider.key.toLowerCase()}${selectedProvider.key === provider.key ? " is-active" : ""}`}
-                  onClick={() => {
-                    commitSession(createSocialSession(provider));
-                  }}
+                  onClick={() => handleSocialLogin(provider.key)}
                 >
                   <span className="auth-provider-mark" aria-hidden="true">
                     {getAuthProviderMark(provider.key)}
