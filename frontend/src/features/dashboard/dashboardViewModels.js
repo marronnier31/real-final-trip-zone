@@ -2,7 +2,7 @@ function formatMetricValue(value) {
   return String(value ?? 0).padStart(2, "0");
 }
 
-export function getAdminDashboardViewModel({ users, sellers, adminInquiries, auditLogs, adminTasks }) {
+export function getAdminDashboardViewModel({ users, sellers, adminInquiries, adminTasks }) {
   const blockedUsers = users.filter((item) => item.status === "BLOCKED");
   const dormantUsers = users.filter((item) => item.status === "DORMANT");
   const attentionUsers = [...blockedUsers, ...dormantUsers].slice(0, 2);
@@ -71,13 +71,6 @@ export function getAdminDashboardViewModel({ users, sellers, adminInquiries, aud
         to: "/admin/inquiries",
       })),
     ].slice(0, 6),
-    logs: auditLogs.map((item) => ({
-      title: item.action,
-      subtitle: item.actor ?? item.admin,
-      target: item.target,
-      time: item.time,
-      type: item.type ?? "default",
-    })),
     trends: [],
     monthlyPerformance: [],
     lodgingMix: [],

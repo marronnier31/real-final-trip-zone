@@ -112,11 +112,12 @@ export function buildCollectionCards(collection, lodgings) {
     const hasDiscount = (lodging.id + index) % 4 !== 0;
     const originalPrice = hasDiscount ? Math.round(currentPrice / (1 - rateSeed) / 1000) * 1000 : currentPrice;
     const discountRate = hasDiscount ? Math.round((1 - currentPrice / originalPrice) * 100) : 0;
+    const highlights = Array.isArray(lodging.highlights) ? lodging.highlights : [];
 
     return {
       ...lodging,
       key: `${collection.region}-${lodging.id}-${index}`,
-      benefit: index % 2 === 0 ? lodging.benefit : lodging.highlights[index % lodging.highlights.length],
+      benefit: index % 2 === 0 || !highlights.length ? lodging.benefit : highlights[index % highlights.length],
       originalPrice: hasDiscount && discountRate > 0 ? `${originalPrice.toLocaleString()}원` : "",
       discountRate: hasDiscount && discountRate > 0 ? `${discountRate}%` : "",
     };

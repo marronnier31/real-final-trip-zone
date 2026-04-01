@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { getAdminSellers, updateAdminSellerStatus } from "../../services/dashboardService";
+import { deleteAdminSeller, getAdminSellers, updateAdminSellerStatus } from "../../services/dashboardService";
 
 const columns = [
   { key: "business", label: "상호명" },
@@ -50,7 +50,20 @@ export default function AdminSellersPage() {
     try {
       const nextRows = await updateAdminSellerStatus(selectedSeller.id, nextStatus);
       setRows(nextRows);
+      setSelectedSellerId(nextRows.find((row) => row.id === selectedSeller.id)?.id ?? nextRows[0]?.id ?? null);
       setNotice("판매자 상태를 변경했습니다.");
+    } catch (error) {
+      setNotice(error.message);
+    }
+  };
+
+  const removeSeller = async () => {
+    if (!selectedSeller) return;
+    try {
+      const nextRows = await deleteAdminSeller(selectedSeller.id);
+      setRows(nextRows);
+      setSelectedSellerId(nextRows[0]?.id ?? null);
+      setNotice("판매자 신청 이력을 삭제했습니다.");
     } catch (error) {
       setNotice(error.message);
     }
@@ -87,6 +100,7 @@ export default function AdminSellersPage() {
             <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("APPROVED")} disabled={!selectedSeller}>승인</button>
             <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("REJECTED")} disabled={!selectedSeller}>반려</button>
             <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("SUSPENDED")} disabled={!selectedSeller}>중지</button>
+            <button type="button" className="dash-action-btn is-danger is-subtle" onClick={removeSeller} disabled={!selectedSeller}>삭제</button>
           </div>
           {selectedSeller ? (
             <div className="dash-detail-grid admin-seller-detail-grid">

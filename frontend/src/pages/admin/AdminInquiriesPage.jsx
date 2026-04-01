@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { getAdminInquiries, updateAdminInquiryStatus } from "../../services/dashboardService";
+import { getAdminInquiries, replyAdminInquiry, updateAdminInquiryStatus } from "../../services/dashboardService";
 
 const columns = [
   { key: "title", label: "제목" },
@@ -15,6 +15,8 @@ export default function AdminInquiriesPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [replyDraft, setReplyDraft] = useState("");
+  const [isReplying, setIsReplying] = useState(false);
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
 
   useEffect(() => {
@@ -54,6 +56,24 @@ export default function AdminInquiriesPage() {
       setNotice("문의 상태를 변경했습니다.");
     } catch (error) {
       setNotice(error.message);
+    }
+  };
+
+  const submitReply = async () => {
+    if (!selected || isReplying) return;
+    try {
+      setIsReplying(true);
+      const updated = await replyAdminInquiry(selected.id, replyDraft);
+      if (updated) {
+        setRows((current) => current.map((row) => (row.id === updated.id ? updated : row)));
+        setSelectedId(updated.id);
+      }
+      setReplyDraft("");
+      setNotice("문의 답변을 등록했습니다.");
+    } catch (error) {
+      setNotice(error.message);
+    } finally {
+      setIsReplying(false);
     }
   };
 
@@ -98,7 +118,22 @@ export default function AdminInquiriesPage() {
               </article>
             ))}
           </div>
+          <div className="my-form-card" style={{ marginTop: 20 }}>
+            <label className="my-form-field" htmlFor="admin-inquiry-reply">
+              <span>답변 작성</span>
+              <textarea
+                id="admin-inquiry-reply"
+                rows={4}
+                value={replyDraft}
+                onChange={(event) => setReplyDraft(event.target.value)}
+                placeholder="회원 문의에 대한 답변을 입력하세요."
+              />
+            </label>
+          </div>
           <div className="dash-action-grid">
+            <button type="button" className="dash-action-btn is-primary" onClick={submitReply} disabled={!selected || isReplying}>
+              {isReplying ? "답변 저장 중" : "답변 보내기"}
+            </button>
             <button type="button" className="dash-action-btn is-primary" onClick={() => updateStatus("ANSWERED")} disabled={!selected}>답변 완료</button>
             <button type="button" className="dash-action-btn" onClick={() => updateStatus("CLOSED")} disabled={!selected}>종료</button>
           </div>

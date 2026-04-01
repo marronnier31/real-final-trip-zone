@@ -102,6 +102,7 @@ function mapEventDto(dto) {
     content: dto.content ?? "",
     startDate: dto.startDate ?? "",
     endDate: dto.endDate ?? "",
+    thumbnailUrl: dto.thumbnailUrl ?? "",
   };
 }
 
@@ -322,6 +323,11 @@ export async function updateAdminSellerStatus(hostNo, nextStatus) {
   return getAdminSellers();
 }
 
+export async function deleteAdminSeller(hostNo) {
+  await del(`/api/hosts/${hostNo}`);
+  return getAdminSellers();
+}
+
 export async function getAdminEvents() {
   const [eventResponse, couponRows] = await Promise.all([
     get("/api/event/list?page=1&size=100"),
@@ -356,13 +362,16 @@ export async function updateAdminEventStatus(currentEvent, nextStatus) {
   formData.append("startDate", currentEvent.startDate);
   formData.append("endDate", currentEvent.endDate);
   formData.append("status", nextStatus);
+  if (currentEvent.thumbnailUrl) {
+    formData.append("thumbnailUrl", currentEvent.thumbnailUrl);
+  }
 
   await put(`/api/event/${currentEvent.entityNo}`, formData);
   const refreshed = await get(`/api/event/${currentEvent.entityNo}`);
   return mapEventDto(refreshed);
 }
 
-export async function saveAdminEvent(eventId, draft, currentEvent) {
+export async function saveAdminEvent(eventId, draft, currentEvent, imageFile = null) {
   if (currentEvent.entityType === "COUPON") {
     await patch(`/api/coupon/${currentEvent.entityNo}`, {
       adminUser: currentEvent.adminUser,
@@ -384,6 +393,12 @@ export async function saveAdminEvent(eventId, draft, currentEvent) {
   formData.append("startDate", draft.startDate);
   formData.append("endDate", draft.endDate);
   formData.append("status", currentEvent.status ?? "DRAFT");
+  if (currentEvent.thumbnailUrl) {
+    formData.append("thumbnailUrl", currentEvent.thumbnailUrl);
+  }
+  if (imageFile) {
+    formData.append("file", imageFile);
+  }
 
   await put(`/api/event/${currentEvent.entityNo}`, formData);
   const refreshed = await get(`/api/event/${currentEvent.entityNo}`);
@@ -409,6 +424,30 @@ export async function updateAdminInquiryStatus(inquiryNo, nextStatus) {
     status: nextStatus,
   });
   return mapInquiryDto(response);
+}
+
+export async function replyAdminInquiry(inquiryNo, content) {
+  const session = readAuthSession();
+  if (!session?.userNo) {
+    throw new Error("로그인 정보가 없습니다.");
+  }
+  const body = content?.trim();
+  if (!body) {
+    throw new Error("답변 내용을 입력해 주세요.");
+  }
+
+  await post("/api/comment", {
+    inquiryNo: Number(inquiryNo),
+    userNo: Number(session.userNo),
+    content: body,
+  });
+
+  await patch(`/api/admin/inquiries/${inquiryNo}/status`, {
+    status: "ANSWERED",
+  });
+
+  const rows = await getAdminInquiries();
+  return rows.find((row) => Number(row.id) === Number(inquiryNo)) ?? null;
 }
 
 export async function getAdminReviews() {

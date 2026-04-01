@@ -39,7 +39,6 @@ import AdminSellersPage from "../pages/admin/AdminSellersPage";
 import AdminEventsPage from "../pages/admin/AdminEventsPage";
 import AdminInquiriesPage from "../pages/admin/AdminInquiriesPage";
 import AdminReviewsPage from "../pages/admin/AdminReviewsPage";
-import AdminAuditLogsPage from "../pages/admin/AdminAuditLogsPage";
 import SubmissionHtmlRedirect from "./SubmissionHtmlRedirect";
 
 function RequireRole({ allowedRoles, children }) {
@@ -104,7 +103,6 @@ export default function AppRouter() {
           <Route path="/admin/events" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminEventsPage /></RequireRole>} />
           <Route path="/admin/inquiries" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminInquiriesPage /></RequireRole>} />
           <Route path="/admin/reviews" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminReviewsPage /></RequireRole>} />
-          <Route path="/admin/audit-logs" element={<RequireRole allowedRoles={["ROLE_ADMIN"]}><AdminAuditLogsPage /></RequireRole>} />
         </Route>
       </Routes>
     </BrowserRouter>

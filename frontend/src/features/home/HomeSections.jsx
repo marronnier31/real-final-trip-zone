@@ -19,15 +19,16 @@ export function HomePromoSection({ promoBanners }) {
       </div>
       <div className="promo-grid">
         {promoBanners.map((item) => (
-          <article
-            key={item.title}
+          <Link
+            key={item.id ?? item.title}
+            to={item.href ?? "/events"}
             className={`promo-card promo-${item.accent}`}
             style={{ backgroundImage: `linear-gradient(180deg, rgba(8, 24, 34, 0.12), rgba(8, 24, 34, 0.58)), url(${item.image})` }}
           >
             <strong>{item.title}</strong>
             <p>{item.subtitle}</p>
             <span className="promo-date">{item.date}</span>
-          </article>
+          </Link>
         ))}
       </div>
     </section>

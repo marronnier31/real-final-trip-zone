@@ -3,7 +3,6 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import {
   DashboardFactGrid,
   DashboardFocusList,
-  DashboardLogList,
   DashboardMetricStrip,
   DashboardMixList,
   DashboardPanel,
@@ -142,9 +141,6 @@ export default function AdminDashboardPage() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel eyebrow="Activity" title="최근 조치 기록" className="admin-panel-log">
-          <DashboardLogList rows={vm.logs} />
-        </DashboardPanel>
       </div>
     </DashboardLayout>
   );

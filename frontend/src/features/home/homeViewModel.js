@@ -2,6 +2,25 @@ import { matchesKeyword } from "./homeUtils";
 
 const RECENT_SEARCHES_KEY = "tripzone-recent-searches";
 
+function isValidRecentSearch(value) {
+  if (typeof value !== "string") return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed.includes("?")) return false;
+  return true;
+}
+
+function normalizeRecentSearches(items) {
+  const normalized = [];
+  items.forEach((item) => {
+    if (!isValidRecentSearch(item)) return;
+    const trimmed = item.trim();
+    if (normalized.includes(trimmed)) return;
+    normalized.push(trimmed);
+  });
+  return normalized.slice(0, 4);
+}
+
 export function buildHomeSuggestionItems(lodgings, searchSuggestionItems) {
   const lodgingItems = lodgings.flatMap((lodging) => [
     {
@@ -9,7 +28,7 @@ export function buildHomeSuggestionItems(lodgings, searchSuggestionItems) {
       subtitle: `${lodging.type}, ${lodging.region} ${lodging.district}`,
       type: "hotel",
       region: lodging.region,
-      aliases: [lodging.district, lodging.address, ...lodging.highlights],
+      aliases: [lodging.district, lodging.address, ...(Array.isArray(lodging.highlights) ? lodging.highlights : [])],
     },
     {
       label: lodging.district,
@@ -45,7 +64,10 @@ export function filterHomeSuggestions(items, keyword) {
 export function readRecentSearches() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(RECENT_SEARCHES_KEY) ?? "[]");
-    return Array.isArray(stored) ? stored.slice(0, 4) : [];
+    if (!Array.isArray(stored)) return [];
+    const normalized = normalizeRecentSearches(stored);
+    window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(normalized));
+    return normalized;
   } catch {
     return [];
   }
@@ -54,7 +76,7 @@ export function readRecentSearches() {
 export function writeRecentSearches(keyword, recentSearches) {
   const trimmed = keyword.trim();
   if (!trimmed) return recentSearches;
-  const nextRecent = [trimmed, ...recentSearches.filter((item) => item !== trimmed)].slice(0, 4);
+  const nextRecent = normalizeRecentSearches([trimmed, ...recentSearches]);
   window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(nextRecent));
   return nextRecent;
 }

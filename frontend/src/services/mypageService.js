@@ -119,6 +119,30 @@ function mapUserCouponDto(dto) {
   };
 }
 
+function mapMyCouponItem(item) {
+  return {
+    id: item.id ?? item.userCouponId,
+    userCouponId: item.userCouponId ?? item.id,
+    couponName: item.couponName ?? item.name,
+    name: item.name ?? item.couponName,
+    couponType: item.couponType,
+    discountValue: item.discountValue,
+    discountLabel:
+      item.discountLabel ??
+      (item.couponType === "RATE"
+        ? `${item.discountValue}%`
+        : `${Number(item.discountValue ?? 0).toLocaleString()}원`),
+    status: item.status ?? item.statusLabel,
+    statusLabel: item.statusLabel ?? item.status,
+    expire: item.expire ?? "",
+    expiredAt: item.expiredAt ?? null,
+    target: item.target ?? item.appliesTo ?? resolveCouponTarget(item.couponName ?? item.name),
+    appliesTo: item.appliesTo ?? item.target ?? resolveCouponTarget(item.couponName ?? item.name),
+    isUsable: item.usable ?? item.status === "사용 가능",
+    issuedAt: item.issuedAt ?? "",
+  };
+}
+
 function mapCouponCatalogDto(dto) {
   const target = resolveCouponTarget(dto.couponName);
 
@@ -146,10 +170,15 @@ export async function fetchCouponCatalog() {
 }
 
 export async function fetchMyCoupons() {
-  const response = await get("/api/usercoupon/list?page=1&size=100");
-  const rows = (response.dtoList ?? []).map(mapUserCouponDto);
+  const response = await get("/api/mypage/coupons");
+  const rows = (response.items ?? []).map(mapMyCouponItem);
   myCouponSnapshot = rows;
   return rows;
+}
+
+export async function deleteMyCoupon(userCouponId) {
+  await del(`/api/usercoupon/${userCouponId}`);
+  return fetchMyCoupons();
 }
 
 export function getMyCoupons() {

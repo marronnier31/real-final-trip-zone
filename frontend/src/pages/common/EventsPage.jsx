@@ -1,51 +1,29 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { promoBanners } from "../../data/homeData";
+import { eventBanners, promoBanners } from "../../data/homeData";
 import { readAuthSession } from "../../features/auth/authSession";
 import { fetchLiveEvents } from "../../services/eventService";
-import { claimMyCoupon, fetchCouponCatalog, fetchMyCoupons } from "../../services/mypageService";
-
-function buildCouponEvent(coupon, index) {
-  return {
-    id: `coupon-${coupon.couponNo ?? coupon.id ?? index}`,
-    title: `${coupon.name}\n프로모션`,
-    subtitle: `${coupon.target} 예약에 적용되는 실쿠폰입니다.`,
-    action: "쿠폰 다운로드",
-    href: "/lodgings?theme=deal",
-    coupon,
-    heroTitle: `${coupon.name}\n다운로드`,
-    heroSubtitle: `${coupon.discountLabel} 혜택을 바로 쿠폰함에 추가합니다.`,
-    heroEyebrow: "Live Coupon",
-    heroMeta: `${coupon.target} · 실제 발급`,
-    detailTitle: coupon.name,
-    detailCopy: "실제 백엔드 쿠폰을 내려받아 마이페이지 쿠폰함과 바로 연결합니다.",
-  };
-}
 
 export default function EventsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [claimedCoupons, setClaimedCoupons] = useState([]);
-  const [couponCatalog, setCouponCatalog] = useState([]);
   const [liveEvents, setLiveEvents] = useState([]);
-  const [couponNotice, setCouponNotice] = useState("");
   const [eventNotice, setEventNotice] = useState("");
-  const session = readAuthSession();
-  const couponEvents = couponCatalog.map(buildCouponEvent);
+  const isLoggedIn = Boolean(readAuthSession()?.accessToken);
+  const couponRows = eventBanners.map((item) => ({
+    ...item,
+    entityType: "COUPON",
+    heroEyebrow: item.heroEyebrow ?? "Coupon Benefit",
+    heroMeta: item.heroMeta ?? item.date,
+    detailTitle: item.detailTitle ?? item.title,
+    detailCopy: item.detailCopy ?? item.subtitle,
+    imageUrl: item.image,
+    periodLabel: item.date,
+    ctaHref: isLoggedIn ? "/my/coupons" : "/login",
+    ctaLabel: isLoggedIn ? "쿠폰함 보기" : "로그인 후 쿠폰 확인",
+  }));
+  const promoRows = [...liveEvents, ...couponRows];
   const selectedEventId = searchParams.get("event");
-  const participationEvents = liveEvents;
-  const allEvents = [...couponEvents, ...participationEvents];
-  const selectedEvent = allEvents.find((item) => item.id === selectedEventId) ?? null;
-  const isClaimed = useMemo(
-    () =>
-      selectedEvent?.coupon
-        ? claimedCoupons.some(
-            (item) =>
-              Number(item.id) === Number(selectedEvent.coupon.id) ||
-              item.couponName === selectedEvent.coupon.couponName,
-          )
-        : false,
-    [claimedCoupons, selectedEvent],
-  );
+  const selectedEvent = promoRows.find((item) => item.id === selectedEventId) ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -68,37 +46,6 @@ export default function EventsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadCoupons() {
-      if (!session?.accessToken) {
-        if (cancelled) return;
-        setClaimedCoupons([]);
-        setCouponCatalog([]);
-        setCouponNotice("로그인 후 실제 쿠폰을 발급할 수 있습니다.");
-        return;
-      }
-
-      try {
-        const [issuedRows, catalogRows] = await Promise.all([fetchMyCoupons(), fetchCouponCatalog()]);
-        if (cancelled) return;
-        setClaimedCoupons(issuedRows);
-        setCouponCatalog(catalogRows);
-        setCouponNotice("");
-      } catch (error) {
-        console.error("Failed to load event coupons.", error);
-        setCouponNotice("쿠폰 목록을 불러오지 못했습니다.");
-      }
-    }
-
-    loadCoupons();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.accessToken]);
-
   const openEvent = (eventId) => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("event", eventId);
@@ -109,24 +56,6 @@ export default function EventsPage() {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("event");
     setSearchParams(nextParams);
-  };
-
-  const handleCouponClaim = async () => {
-    if (!selectedEvent?.coupon || isClaimed) return;
-    if (!session?.accessToken) {
-      setCouponNotice("로그인 후 쿠폰을 발급할 수 있습니다.");
-      return;
-    }
-
-    try {
-      const result = await claimMyCoupon(selectedEvent.coupon);
-      setClaimedCoupons(result.rows);
-      setCouponNotice("쿠폰이 쿠폰함에 추가되었습니다.");
-      setSearchParams(new URLSearchParams(searchParams));
-    } catch (error) {
-      console.error("Failed to claim coupon.", error);
-      setCouponNotice("쿠폰 발급에 실패했습니다.");
-    }
   };
 
   if (selectedEvent) {
@@ -149,50 +78,45 @@ export default function EventsPage() {
               <span className="events-detail-meta">{selectedEvent.heroMeta}</span>
               <div className="events-detail-divider" />
               <small>{selectedEvent.detailCopy}</small>
-              {selectedEvent.coupon ? (
-                <button
-                  type="button"
-                  className={`events-detail-inline-button${isClaimed ? " is-complete" : ""}`}
-                  onClick={handleCouponClaim}
-                >
-                  {isClaimed ? `${selectedEvent.detailTitle} 발급완료` : selectedEvent.detailTitle}
-                </button>
-              ) : (
-                <Link className="events-detail-inline-link" to={selectedEvent.href ?? "/lodgings?theme=deal"}>
-                  이벤트 대상 보기
-                </Link>
-              )}
+              <Link className="events-detail-inline-link" to={selectedEvent.href ?? "/lodgings?theme=deal"}>
+                {selectedEvent.entityType === "COUPON" ? "혜택 적용 숙소 보기" : "이벤트 대상 보기"}
+              </Link>
             </article>
 
             <aside className="events-detail-side">
               <div className="events-detail-coupon-box">
-                <span className="events-detail-side-label">{selectedEvent.coupon ? "Coupon Download" : "Event Action"}</span>
+                <span className="events-detail-side-label">Promotion Action</span>
                 <strong>{selectedEvent.detailTitle}</strong>
-                <p>{selectedEvent.coupon ? "프로모션 쿠폰을 내려받으면 마이페이지 쿠폰함에 바로 추가됩니다." : "참여형 이벤트는 조건 확인 후 해당 이벤트 페이지나 특가 숙소 리스트로 이동합니다."}</p>
-                {selectedEvent.coupon ? (
-                  <button
-                    type="button"
-                    className={`events-detail-download-button${isClaimed ? " is-complete" : ""}`}
-                    onClick={handleCouponClaim}
-                  >
-                    {isClaimed ? `${selectedEvent.detailTitle} 발급완료` : selectedEvent.detailTitle}
-                  </button>
-                ) : (
-                  <Link className="events-detail-download-button is-link" to={selectedEvent.href ?? "/lodgings?theme=deal"}>
-                    {selectedEvent.action}
-                  </Link>
-                )}
+                <p>
+                  {selectedEvent.entityType === "COUPON"
+                    ? "쿠폰형 프로모션은 혜택 대상 숙소와 쿠폰함 흐름으로 바로 이어집니다."
+                    : "프로모션 카드를 누르면 바로 대상 숙소나 특가 리스트로 이어집니다."}
+                </p>
+                <Link
+                  className="events-detail-download-button is-link"
+                  to={selectedEvent.ctaHref ?? selectedEvent.href ?? "/lodgings?theme=deal"}
+                >
+                  {selectedEvent.ctaLabel ?? selectedEvent.action ?? "이벤트 대상 보기"}
+                </Link>
                 <div className="events-detail-side-note">
-                  <span>{selectedEvent.coupon ? (couponNotice || (isClaimed ? "쿠폰함에 1장이 추가되었습니다." : "다운로드 후 쿠폰함 수량이 바로 반영됩니다.")) : "참여 후 지급되는 보상은 이벤트 조건 달성 시 반영됩니다."}</span>
+                  <span>
+                    {selectedEvent.entityType === "COUPON"
+                      ? "로그인 후 쿠폰함과 특가 숙소 탐색으로 바로 이어집니다."
+                      : "프로모션 상세 확인 후 바로 예약 탐색으로 이어집니다."}
+                  </span>
                 </div>
               </div>
 
               <div className="events-detail-coupon-preview">
-                <span className="events-detail-side-label">{selectedEvent.coupon ? "My Coupon" : "Related View"}</span>
-                <strong>{selectedEvent.coupon ? `보유 쿠폰 ${claimedCoupons.length}장` : "마이페이지와 연결"}</strong>
-                <p>{selectedEvent.coupon ? "다운로드한 쿠폰은 마이페이지 쿠폰 메뉴에서 확인할 수 있습니다." : "이벤트 확인 후 실제 반영 상태는 마이페이지나 특가 리스트에서 이어서 봅니다."}</p>
-                <Link className="coupon-action-button" to={selectedEvent.coupon ? "/my/coupons" : "/lodgings?theme=deal"}>
-                  {selectedEvent.coupon ? "쿠폰함 보기" : "특가 숙소 보기"}
+                <span className="events-detail-side-label">{selectedEvent.entityType === "COUPON" ? "Coupon Flow" : "Related View"}</span>
+                <strong>{selectedEvent.entityType === "COUPON" ? "쿠폰함 / 적용 숙소" : "특가 숙소 보기"}</strong>
+                <p>
+                  {selectedEvent.entityType === "COUPON"
+                    ? "쿠폰 프로모션은 쿠폰함과 적용 대상 숙소 리스트를 바로 확인할 수 있게 연결합니다."
+                    : "프로모션 확인 후 실제 반영 상태는 특가 리스트와 숙소 상세에서 이어서 봅니다."}
+                </p>
+                <Link className="coupon-action-button" to={selectedEvent.href ?? "/lodgings?theme=deal"}>
+                  {selectedEvent.entityType === "COUPON" ? "적용 숙소 보기" : "대상 페이지 이동"}
                 </Link>
               </div>
             </aside>
@@ -204,72 +128,31 @@ export default function EventsPage() {
 
   return (
     <div className="container page-stack">
-      <section className="events-board">
-        <div className="events-board-group">
-          <div className="events-board-head">
-            <h2>진행 중인 프로모션</h2>
-            <Link className="text-link" to="/lodgings?theme=deal">더보기</Link>
-          </div>
-          <div className="events-board-grid" aria-label="진행 중인 프로모션 목록">
-            {couponEvents.map((item) => (
-              <button key={item.id} type="button" className="events-board-card" onClick={() => openEvent(item.id)}>
-                <span className="events-board-chip">Coupon Pack</span>
-                <strong>{item.title}</strong>
-                <p>{item.subtitle}</p>
-                <span className="events-board-cta">{item.action}</span>
-              </button>
-            ))}
-          </div>
-          {!couponEvents.length ? (
-            <div className="my-empty-inline">
-              {couponNotice || "현재 노출할 실제 쿠폰 프로모션이 없습니다."}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="events-board-group">
-          <div className="events-board-head">
-            <h2>참여형 이벤트</h2>
-            <Link className="text-link" to="/lodgings?theme=deal">더보기</Link>
-          </div>
-          <div className="events-board-grid" aria-label="참여형 이벤트 목록">
-            {participationEvents.map((item) => (
-              <button key={item.id} type="button" className="events-board-card is-tall" onClick={() => openEvent(item.id)}>
-                <span className="events-board-chip is-soft">Event</span>
-                <strong>{item.title}</strong>
-                <p>{item.subtitle}</p>
-                <span className="events-board-cta">{item.action}</span>
-              </button>
-            ))}
-          </div>
-          {!participationEvents.length ? (
-            <div className="my-empty-inline">
-              {eventNotice || "현재 진행 중인 참여형 이벤트가 없습니다."}
-            </div>
-          ) : null}
-        </div>
-      </section>
-
       <section className="home-section">
         <div className="home-section-head">
-          <h2>오늘 예약이 빠른 특가</h2>
+          <h2>프로모션</h2>
           <Link className="text-link" to="/lodgings?theme=deal">
-            전체 숙소 보기
+            대상 숙소 보기
           </Link>
         </div>
         <div className="promo-grid">
-          {promoBanners.map((item) => (
-            <article
-              key={item.title}
-              className={`promo-card promo-${item.accent}`}
-              style={{ backgroundImage: `linear-gradient(180deg, rgba(8, 24, 34, 0.12), rgba(8, 24, 34, 0.58)), url(${item.image})` }}
+          {(promoRows.length ? promoRows : promoBanners).map((item, index) => (
+            <button
+              key={item.id ?? item.title}
+              type="button"
+              className={`promo-card promo-${item.accent ?? "sunset"}`}
+              style={{
+                backgroundImage: `linear-gradient(180deg, rgba(8, 24, 34, 0.12), rgba(8, 24, 34, 0.58)), url(${item.imageUrl || item.image || promoBanners[index % promoBanners.length]?.image})`,
+              }}
+              onClick={() => openEvent(item.id)}
             >
               <strong>{item.title}</strong>
-              <p>{item.subtitle}</p>
-              <span className="promo-date">{item.date}</span>
-            </article>
+              <p>{item.subtitle ?? item.content ?? "이벤트 상세 내용을 확인해 주세요."}</p>
+              <span className="promo-date">{item.periodLabel ?? item.date}</span>
+            </button>
           ))}
         </div>
+        {!promoRows.length ? <div className="my-empty-inline">{eventNotice || "현재 진행 중인 프로모션이 없습니다."}</div> : null}
       </section>
     </div>
   );

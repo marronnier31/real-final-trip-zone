@@ -172,7 +172,6 @@ export function getHeaderRoleLinks(session) {
       { to: "/admin/sellers", label: "판매자 관리" },
       { to: "/admin/events", label: "이벤트 · 쿠폰" },
       { to: "/admin/inquiries", label: "문의 모니터링" },
-      { to: "/admin/audit-logs", label: "운영 로그" },
     ];
   }
 

@@ -17,18 +17,22 @@ export const quickThemes = [
 
 export const promoBanners = [
   {
+    id: "home-promo-jeju-breakfast",
     title: "제주 연박 고객\n조식 업그레이드",
     subtitle: "애월과 중문 중심으로 2박 이상 예약 시 혜택을 바로 적용합니다.",
     date: "03.22 - 04.14",
     accent: "sunset",
+    href: "/events",
     image:
       "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80",
   },
   {
+    id: "home-promo-seoul-checkin",
     title: "서울 시티 스테이\n금토 체크인 특가",
     subtitle: "성수와 도심권에서 금요일 체크인 가능한 객실을 먼저 보여줍니다.",
     date: "03.28 - 03.30",
     accent: "peach",
+    href: "/events",
     image:
       "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1400&q=80",
   },
@@ -39,6 +43,10 @@ export const eventBanners = [
     id: "domestic-10",
     title: "국내숙소\n10%할인권",
     subtitle: "국내 숙소 예약에 바로 적용되는 대표 쿠폰팩",
+    date: "03.27 - 04.30",
+    accent: "sunset",
+    image:
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1400&q=80",
     action: "쿠폰 다운로드",
     href: "/lodgings?region=제주&theme=deal",
     coupon: {
@@ -69,6 +77,10 @@ export const eventBanners = [
     id: "seoul-city",
     title: "TripZone첫구매\n15% 할인권",
     subtitle: "첫 예약 고객에게 바로 적용되는 웰컴 할인",
+    date: "03.27 - 04.14",
+    accent: "peach",
+    image:
+      "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=1400&q=80",
     action: "쿠폰 다운로드",
     href: "/lodgings?region=서울&theme=deal",
     coupon: {
@@ -99,6 +111,10 @@ export const eventBanners = [
     id: "kh-staff",
     title: "kh직원\n3%추가할인쿠폰",
     subtitle: "사내 전용 추가 할인 쿠폰으로 일반 할인과 함께 사용",
+    date: "03.27 - 04.18",
+    accent: "mint",
+    image:
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80",
     action: "쿠폰 다운로드",
     href: "/lodgings?theme=deal",
     coupon: {
@@ -129,6 +145,10 @@ export const eventBanners = [
     id: "busan-ocean",
     title: "봄맞이\n숙소할인쿠폰",
     subtitle: "봄 시즌 숙소에 맞춘 시즌성 할인 쿠폰",
+    date: "03.27 - 04.21",
+    accent: "dusk",
+    image:
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1400&q=80",
     action: "쿠폰 다운로드",
     href: "/lodgings?region=부산&theme=ocean",
     coupon: {

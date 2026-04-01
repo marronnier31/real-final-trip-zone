@@ -7,12 +7,14 @@ import {
   getCouponToneClass,
   getCouponVisualClass,
 } from "../../features/mypage/mypageViewModels";
-import { fetchMyCoupons } from "../../services/mypageService";
+import { deleteMyCoupon, fetchMyCoupons } from "../../services/mypageService";
 
 export default function MyCouponsPage() {
   const [filter, setFilter] = useState("available");
   const [coupons, setCoupons] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [message, setMessage] = useState("");
+  const [deletingCouponId, setDeletingCouponId] = useState(null);
   const { expiringCount, filteredCoupons } = getCouponSummary(coupons, filter);
 
   useEffect(() => {
@@ -39,6 +41,24 @@ export default function MyCouponsPage() {
       cancelled = true;
     };
   }, []);
+
+  async function handleDeleteCoupon(item) {
+    if (!item.userCouponId || deletingCouponId) {
+      return;
+    }
+
+    try {
+      setDeletingCouponId(item.userCouponId);
+      setMessage("");
+      const rows = await deleteMyCoupon(item.userCouponId);
+      setCoupons(rows);
+      setMessage("쿠폰을 정리했습니다.");
+    } catch (error) {
+      setMessage(error?.message ?? "쿠폰을 정리하지 못했습니다.");
+    } finally {
+      setDeletingCouponId(null);
+    }
+  }
 
   return (
     <MyPageLayout>
@@ -68,6 +88,7 @@ export default function MyCouponsPage() {
           <span>{filteredCoupons.length}개 쿠폰</span>
           <span>할인 혜택순</span>
         </div>
+        {message ? <div className="my-inline-feedback">{message}</div> : null}
         {filteredCoupons.length ? (
           <div className="coupon-vault">
             {filteredCoupons.map((item) => (
@@ -102,6 +123,14 @@ export default function MyCouponsPage() {
                 ) : (
                   <span className="coupon-vault-hint">{item.status === "사용 완료" ? "사용 완료 쿠폰" : "곧 만료되는 쿠폰"}</span>
                 )}
+                <button
+                  type="button"
+                  className="coupon-action-button is-secondary"
+                  onClick={() => handleDeleteCoupon(item)}
+                  disabled={deletingCouponId === item.userCouponId}
+                >
+                  {deletingCouponId === item.userCouponId ? "정리 중" : "쿠폰 정리"}
+                </button>
               </div>
             </article>
             ))}

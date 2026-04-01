@@ -876,6 +876,20 @@
   font-weight: 800;
 }
 
+.coupon-action-button.is-secondary {
+  background: rgba(19, 53, 47, 0.08);
+  color: var(--text-main);
+}
+
+.my-inline-feedback {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(19, 53, 47, 0.06);
+  color: var(--text-main);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .booking-action-button,
 .payment-action-button {
   min-width: 88px;

@@ -24,16 +24,19 @@ function isHiddenStatus(status) {
 
 export default function AdminEventsPage() {
   const [rows, setRows] = useState([]);
+  const [section, setSection] = useState("EVENT");
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [uploadFile, setUploadFile] = useState(null);
   const [draft, setDraft] = useState({
     title: "",
     content: "",
     startDate: "",
     endDate: "",
   });
-  const selectedEvent = rows.find((row) => row.id === selectedEventId) ?? rows[0];
+  const visibleRows = rows.filter((row) => row.entityType === section);
+  const selectedEvent = visibleRows.find((row) => row.id === selectedEventId) ?? visibleRows[0] ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -71,8 +74,20 @@ export default function AdminEventsPage() {
     };
   }, []);
 
-  const syncDraft = (eventId) => {
-    const target = rows.find((row) => row.id === eventId);
+  useEffect(() => {
+    if (!visibleRows.length) {
+      setSelectedEventId(null);
+      return;
+    }
+
+    if (!visibleRows.some((row) => row.id === selectedEventId)) {
+      setSelectedEventId(visibleRows[0].id);
+      syncDraft(visibleRows[0].id, visibleRows);
+    }
+  }, [section, rows]);
+
+  const syncDraft = (eventId, sourceRows = rows) => {
+    const target = sourceRows.find((row) => row.id === eventId);
     if (!target) return;
     setDraft({
       title: target.title,
@@ -80,6 +95,7 @@ export default function AdminEventsPage() {
       startDate: target.startDate ? target.startDate.slice(0, 16) : "",
       endDate: target.endDate ? target.endDate.slice(0, 16) : "",
     });
+    setUploadFile(null);
   };
 
   const updateStatus = async (nextStatus) => {
@@ -96,8 +112,9 @@ export default function AdminEventsPage() {
   const handleSave = async () => {
     if (!selectedEvent) return;
     try {
-      const updatedEvent = await saveAdminEvent(selectedEvent.id, draft, selectedEvent);
+      const updatedEvent = await saveAdminEvent(selectedEvent.id, draft, selectedEvent, uploadFile);
       setRows((current) => current.map((row) => (row.id === updatedEvent.id ? updatedEvent : row)));
+      setUploadFile(null);
       setNotice("이벤트 정보를 저장했습니다.");
     } catch (error) {
       setNotice(error.message);
@@ -115,12 +132,29 @@ export default function AdminEventsPage() {
         </div>
       </div>
 
+      <div className="dash-segmented-filter" role="tablist" aria-label="이벤트 쿠폰 구분">
+        <button
+          type="button"
+          className={`dash-segmented-filter-btn${section === "EVENT" ? " is-active" : ""}`}
+          onClick={() => setSection("EVENT")}
+        >
+          이벤트
+        </button>
+        <button
+          type="button"
+          className={`dash-segmented-filter-btn${section === "COUPON" ? " is-active" : ""}`}
+          onClick={() => setSection("COUPON")}
+        >
+          쿠폰
+        </button>
+      </div>
+
       <div className="dash-table-split">
         <section className="dash-content-section" style={{ marginBottom: 0 }}>
           {isLoading ? <div className="my-empty-inline">이벤트 목록을 불러오는 중입니다.</div> : null}
           <DataTable
             columns={columns}
-            rows={rows.map((row) => ({ ...row, status: row.statusLabel }))}
+            rows={visibleRows.map((row) => ({ ...row, status: row.statusLabel }))}
             getRowKey={(row) => row.id}
             selectedKey={selectedEventId}
             onRowClick={(row) => {
@@ -133,7 +167,7 @@ export default function AdminEventsPage() {
         <div className="dash-action-sheet">
           <h3>{selectedEvent?.title ?? "—"}</h3>
           <div className="dash-field">
-            <span>이벤트/쿠폰명</span>
+            <span>{selectedEvent?.entityType === "COUPON" ? "쿠폰명" : "이벤트명"}</span>
             <input value={draft.title} onChange={(e) => setDraft((c) => ({ ...c, title: e.target.value }))} />
           </div>
           <div className="dash-field">
@@ -148,6 +182,19 @@ export default function AdminEventsPage() {
             <span>종료 일시</span>
             <input type="datetime-local" value={draft.endDate} onChange={(e) => setDraft((c) => ({ ...c, endDate: e.target.value }))} />
           </div>
+          {selectedEvent?.entityType === "EVENT" ? (
+            <div className="dash-field dash-field-wide">
+              <span>이벤트 이미지</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+              />
+              <small className="dash-field-hint">
+                {uploadFile?.name || (selectedEvent.thumbnailUrl ? "기존 이미지 유지 중" : "등록된 이미지 없음")}
+              </small>
+            </div>
+          ) : null}
           <div className="dash-action-grid">
             <button type="button" className="dash-action-btn is-primary" onClick={handleSave} disabled={!selectedEvent}>저장</button>
             <button type="button" className="dash-action-btn" onClick={() => updateStatus("ONGOING")} disabled={!selectedEvent}>노출</button>

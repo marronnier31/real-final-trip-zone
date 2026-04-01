@@ -7,7 +7,6 @@ const ADMIN_MENU = [
   { label: "이벤트 · 쿠폰", to: "/admin/events", icon: "04" },
   { label: "문의 모니터링", to: "/admin/inquiries", icon: "05" },
   { label: "리뷰 운영", to: "/admin/reviews", icon: "06" },
-  { label: "운영 로그", to: "/admin/audit-logs", icon: "07" },
 ];
 
 const SELLER_MENU = [
