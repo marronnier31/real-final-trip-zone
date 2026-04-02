@@ -6,13 +6,15 @@ import {
   computePosition,
   createPortal,
   formatDateSummary,
+  isBeforeDate,
   monthGrid,
   parseISO,
   sameDate,
+  startOfDay,
   toISO,
 } from "./bookingUtils";
 
-function CalendarMonth({ baseDate, startDate, endDate, onPick }) {
+function CalendarMonth({ baseDate, startDate, endDate, onPick, minimumDate }) {
   const days = monthGrid(baseDate);
 
   return (
@@ -33,6 +35,7 @@ function CalendarMonth({ baseDate, startDate, endDate, onPick }) {
           const isStart = sameDate(day, startDate);
           const isEnd = sameDate(day, endDate);
           const isBetween = betweenDate(day, startDate, endDate);
+          const isDisabled = isBeforeDate(day, minimumDate);
 
           if (!isCurrentMonth) {
             return <span key={toISO(day)} className="calendar-day-placeholder" aria-hidden="true" />;
@@ -43,6 +46,7 @@ function CalendarMonth({ baseDate, startDate, endDate, onPick }) {
               key={toISO(day)}
               type="button"
               className={`calendar-day${isStart ? " is-start" : ""}${isEnd ? " is-end" : ""}${isBetween ? " is-between" : ""}`}
+              disabled={isDisabled}
               onClick={() => onPick(day)}
             >
               {day.getDate()}
@@ -87,6 +91,7 @@ export function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setV
 
   const startDate = parseISO(checkIn);
   const endDate = parseISO(checkOut);
+  const minimumDate = startOfDay(new Date());
 
   return createPortal(
     <div
@@ -108,13 +113,14 @@ export function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setV
         </button>
       </div>
       <div className="calendar-month-grid" style={{ gridTemplateColumns: position.isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>
-        <CalendarMonth baseDate={visibleMonth} startDate={startDate} endDate={endDate} onPick={onPick} />
+        <CalendarMonth baseDate={visibleMonth} startDate={startDate} endDate={endDate} onPick={onPick} minimumDate={minimumDate} />
         {!position.isMobile ? (
           <CalendarMonth
             baseDate={new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1)}
             startDate={startDate}
             endDate={endDate}
             onPick={onPick}
+            minimumDate={minimumDate}
           />
         ) : null}
       </div>

@@ -9,7 +9,10 @@ export default function MyWishlistPage() {
   const [lodgings, setLodgings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
-  const instantCount = wishlistRows.filter((item) => item.status.includes("즉시")).length;
+  const instantCount = wishlistRows.filter((item) => {
+    const lodging = lodgingMap[item.lodgingId];
+    return lodging?.status === "ACTIVE" || lodging?.highlights?.some((highlight) => highlight.includes("즉시"));
+  }).length;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,7 +88,7 @@ export default function MyWishlistPage() {
               </div>
               <div className="wishlist-side">
                 <span className="wishlist-side-meta">1박 기준</span>
-                <strong className="wishlist-side-price">{item.price}</strong>
+                <strong className="wishlist-side-price">{item.price ?? lodgingMap[item.lodgingId]?.price ?? "가격 확인"}</strong>
                 <Link className="coupon-action-button" to={`/lodgings/${item.lodgingId}`}>
                   상세보기
                 </Link>

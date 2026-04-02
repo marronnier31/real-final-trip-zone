@@ -2733,6 +2733,12 @@
   white-space: nowrap;
 }
 
+.detail-info-item-policy p {
+  white-space: normal;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .room-option-list {
   display: grid;
   gap: 12px;

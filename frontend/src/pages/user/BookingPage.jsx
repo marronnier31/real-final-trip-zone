@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { readAuthSession } from "../../utils/authSession";
 import { DateRangePopover } from "../../features/booking/BookingPanels";
 import { BookingFormSection, BookingSummarySection } from "../../features/booking/BookingSections";
@@ -7,34 +7,50 @@ import {
   buildBookingPricing,
   buildRoomOptions,
   createInitialBookingForm,
-  getBookingCtaHref,
+  getInitialBookingMonth,
   getBookingSelections,
+  getSelectedBookingRoom,
 } from "../../features/booking/bookingViewModel";
-import { formatBookingDate, parseISO, toISO } from "../../features/booking/bookingUtils";
+import { addDays, formatBookingDate, parseISO, startOfDay, toISO } from "../../features/booking/bookingUtils";
 import {
+  createBookingPayment,
+  createBookingReservation,
   getBookingChecklist,
-  getBookingCouponOptions,
   getBookingPaymentOptions,
   getBookingStatusNotes,
 } from "../../services/bookingService";
 import { getLodgingDetailById } from "../../services/lodgingService";
+import { fetchMyCoupons, getMyMileage } from "../../services/mypageService";
+
+const DEFAULT_COUPON_OPTION = {
+  label: "쿠폰 미사용",
+  discount: 0,
+  discountType: "AMOUNT",
+  userCouponNo: null,
+  discountLabel: "할인 없음",
+};
 
 export default function BookingPage() {
+  const navigate = useNavigate();
   const { lodgingId } = useParams();
   const [searchParams] = useSearchParams();
   const [lodging, setLodging] = useState(null);
   const bookingChecklist = getBookingChecklist();
-  const bookingCouponOptions = getBookingCouponOptions();
+  const [bookingCouponOptions, setBookingCouponOptions] = useState([DEFAULT_COUPON_OPTION]);
   const bookingPaymentOptions = getBookingPaymentOptions();
   const bookingStatusNotes = getBookingStatusNotes();
-  const authSession = readAuthSession();
+  const authSession = useMemo(() => readAuthSession(), []);
+  const authUserNo = authSession?.userNo ?? null;
   const roomOptions = useMemo(() => (lodging ? buildRoomOptions(lodging) : []), [lodging]);
   const [form, setForm] = useState(null);
   const [openMenu, setOpenMenu] = useState(null);
+  const [mileageBalance, setMileageBalance] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const checkInRef = useRef(null);
   const checkOutRef = useRef(null);
   const calendarPanelRef = useRef(null);
-  const [visibleMonth, setVisibleMonth] = useState(parseISO(searchParams.get("checkIn") ?? "2026-03-01") ?? new Date());
+  const [visibleMonth, setVisibleMonth] = useState(getInitialBookingMonth(searchParams));
 
   useEffect(() => {
     let cancelled = false;
@@ -60,6 +76,60 @@ export default function BookingPage() {
     if (!lodging || !roomOptions.length) return;
     setForm(createInitialBookingForm(searchParams, roomOptions, lodging, bookingCouponOptions, bookingPaymentOptions));
   }, [bookingCouponOptions, bookingPaymentOptions, lodging, roomOptions, searchParams]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadBookingBenefits() {
+      if (!authSession) {
+        setMileageBalance(0);
+        setBookingCouponOptions([DEFAULT_COUPON_OPTION]);
+        return;
+      }
+
+      try {
+        const [mileageResponse, couponRows] = await Promise.all([getMyMileage(), fetchMyCoupons()]);
+        if (cancelled) return;
+        setMileageBalance(Number(mileageResponse.summary?.balance ?? 0));
+        setBookingCouponOptions([
+          DEFAULT_COUPON_OPTION,
+          ...couponRows
+            .filter((item) => item.isUsable)
+            .map((item) => ({
+              label: item.name,
+              discount: Number(item.discountValue ?? 0),
+              discountType: item.couponType ?? "AMOUNT",
+              userCouponNo: item.userCouponId ?? item.id,
+              discountLabel:
+                item.discountLabel ??
+                ((item.couponType ?? "AMOUNT") === "RATE"
+                  ? `-${Number(item.discountValue ?? 0)}%`
+                  : `-${Number(item.discountValue ?? 0).toLocaleString()}원`),
+            })),
+        ]);
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load booking benefits.", error);
+          setMileageBalance(0);
+          setBookingCouponOptions([DEFAULT_COUPON_OPTION]);
+        }
+      }
+    }
+
+    loadBookingBenefits();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authUserNo]);
+
+  useEffect(() => {
+    if (!form) return;
+
+    const maxMileage = Number.isFinite(mileageBalance) ? mileageBalance : 0;
+    if (form.mileageToUse <= maxMileage) return;
+    setForm((current) => ({ ...current, mileageToUse: maxMileage }));
+  }, [form, mileageBalance]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -91,24 +161,99 @@ export default function BookingPage() {
   }
 
   const { selectedCoupon, selectedPayment } = getBookingSelections(form, bookingCouponOptions, bookingPaymentOptions);
-  const { baseAmount, nightCount, serviceFee, roomTotal, totalAmount } = buildBookingPricing(lodging, form, selectedCoupon);
-  const ctaHref = getBookingCtaHref(authSession);
+  const selectedRoom = getSelectedBookingRoom(lodging, form.room);
+  const { baseAmount, nightCount, serviceFee, roomTotal, mileageUsed, totalAmount } = buildBookingPricing(lodging, form, selectedCoupon, mileageBalance);
+  const canSubmit = Boolean(authSession && selectedRoom && !isSubmitting);
 
   const handleDatePick = (day) => {
+    const today = startOfDay(new Date());
+    if (day.getTime() < today.getTime()) return;
+
     const picked = toISO(day);
     if (openMenu === "date-start") {
+      const nextCheckOut = addDays(day, 1);
       setForm((current) => ({
         ...current,
         checkIn: picked,
-        checkOut: current.checkOut && current.checkOut <= picked ? "" : current.checkOut,
+        checkOut: current.checkOut && current.checkOut > picked ? current.checkOut : toISO(nextCheckOut),
       }));
       return;
     }
 
+    const minimumCheckOut = addDays(parseISO(form.checkIn) ?? day, 1);
     setForm((current) => ({
       ...current,
-      checkOut: picked <= current.checkIn ? current.checkIn : picked,
+      checkOut: picked <= current.checkIn ? toISO(minimumCheckOut) : picked,
     }));
+  };
+
+  const handleSubmit = async () => {
+    if (!authSession) {
+      navigate("/login");
+      return;
+    }
+
+    if (!selectedRoom) {
+      setSubmitError("예약 가능한 객실을 찾을 수 없습니다.");
+      return;
+    }
+
+    if (!form.checkIn || !form.checkOut) {
+      setSubmitError("체크인과 체크아웃 날짜를 확인해 주세요.");
+      return;
+    }
+
+    if (!selectedPayment?.value) {
+      setSubmitError("결제 수단을 선택해 주세요.");
+      return;
+    }
+
+    if (Number(form.guests ?? 0) <= 0) {
+      setSubmitError("투숙 인원은 1명 이상이어야 합니다.");
+      return;
+    }
+
+    if (Number(form.guests) > Number(selectedRoom.maxGuestCount ?? 0)) {
+      setSubmitError(`선택한 객실은 최대 ${selectedRoom.maxGuestCount}인까지 가능합니다.`);
+      return;
+    }
+
+    if (Number(form.mileageToUse ?? 0) > 0) {
+      setSubmitError("마일리지 차감 저장은 아직 결제 연동 전입니다. 0P로 진행해 주세요.");
+      return;
+    }
+
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    try {
+      const bookingResponse = await createBookingReservation({
+        roomNo: selectedRoom.roomId,
+        userCouponNo: selectedCoupon.userCouponNo ?? null,
+        checkInDate: `${form.checkIn}T${lodging.checkInTime ?? "15:00"}:00`,
+        checkOutDate: `${form.checkOut}T${lodging.checkOutTime ?? "11:00"}:00`,
+        guestCount: Number(form.guests),
+        requestMessage: form.request?.trim() || null,
+      });
+
+      await createBookingPayment({
+        bookingNo: bookingResponse.bookingNo,
+        paymentId: `PAY-${bookingResponse.bookingNo}-${Date.now()}`,
+        storeId: "tripzone-local",
+        channelKey: selectedPayment.value,
+        orderName: `${lodging.name} ${selectedRoom.name} 예약`,
+        paymentAmount: bookingResponse.totalPrice,
+        currency: "KRW",
+        payMethod: selectedPayment.value,
+        pgProvider: selectedPayment.pg,
+      });
+
+      navigate(`/my/bookings/${bookingResponse.bookingId}`);
+    } catch (error) {
+      setSubmitError(error.message || "예약 생성에 실패했습니다.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -160,6 +305,7 @@ export default function BookingPage() {
               bookingCouponOptions={bookingCouponOptions}
               bookingPaymentOptions={bookingPaymentOptions}
               formatBookingDate={formatBookingDate}
+              mileageBalance={mileageBalance}
             />
           </div>
 
@@ -170,13 +316,17 @@ export default function BookingPage() {
               nightCount={nightCount}
               roomTotal={roomTotal}
               serviceFee={serviceFee}
+              mileageUsed={mileageUsed}
               totalAmount={totalAmount}
               form={form}
               selectedCoupon={selectedCoupon}
               selectedPayment={selectedPayment}
               bookingStatusNotes={bookingStatusNotes}
               authSession={authSession}
-              ctaHref={ctaHref}
+              canSubmit={canSubmit}
+              isSubmitting={isSubmitting}
+              submitError={submitError}
+              onSubmit={handleSubmit}
             />
           </aside>
         </div>

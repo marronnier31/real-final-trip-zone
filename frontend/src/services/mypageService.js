@@ -174,6 +174,18 @@ export async function getMyWishlist() {
   return response.items ?? [];
 }
 
+export async function toggleMyWishlist(lodgingId) {
+  await post("/api/wishList", {
+    lodgingNo: Number(lodgingId),
+  });
+
+  const items = await getMyWishlist();
+  return {
+    items,
+    wished: items.some((item) => Number(item.lodgingId) === Number(lodgingId)),
+  };
+}
+
 export function getMyInquiryThreads() {
   return get("/api/mypage/inquiries").then((response) =>
     (response.items ?? []).map((item) => ({

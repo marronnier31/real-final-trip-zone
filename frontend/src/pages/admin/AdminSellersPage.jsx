@@ -79,7 +79,7 @@ export default function AdminSellersPage() {
           />
         </section>
 
-        <div className="dash-action-sheet">
+        <div className="dash-action-sheet admin-seller-sheet">
           <h3>{selectedSeller?.business ?? "—"}</h3>
           <p>{selectedSeller?.owner} · {selectedSeller?.region}</p>
           <div className="dash-action-grid">
@@ -88,6 +88,32 @@ export default function AdminSellersPage() {
             <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("REJECTED")} disabled={!selectedSeller}>반려</button>
             <button type="button" className="dash-action-btn is-danger" onClick={() => updateStatus("SUSPENDED")} disabled={!selectedSeller}>중지</button>
           </div>
+          {selectedSeller ? (
+            <div className="dash-detail-grid admin-seller-detail-grid">
+              <div className="dash-detail-item">
+                <span>사업자번호</span>
+                <strong>{selectedSeller.businessNo || "-"}</strong>
+              </div>
+              <div className="dash-detail-item">
+                <span>정산 계좌</span>
+                <strong>{selectedSeller.account || "-"}</strong>
+              </div>
+              <div className="dash-detail-item">
+                <span>신청일</span>
+                <strong>{selectedSeller.submittedAt || "-"}</strong>
+              </div>
+              <div className="dash-detail-item">
+                <span>최근 수정</span>
+                <strong>{selectedSeller.updatedAt || "-"}</strong>
+              </div>
+              {selectedSeller.rejectReason ? (
+                <div className="dash-detail-item dash-detail-item-wide">
+                  <span>반려 사유</span>
+                  <strong>{selectedSeller.rejectReason}</strong>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </DashboardLayout>

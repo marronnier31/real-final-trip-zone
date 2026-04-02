@@ -41,9 +41,20 @@ export function RoomOptionsSection({ lodging, roomOptions, selectedRoom, onSelec
         <h2>예약 가능한 객실</h2>
         <p>{lodging.room}</p>
       </div>
+      {!roomOptions.length ? (
+        <div className="list-empty-state">
+          <strong>등록된 객실이 없습니다.</strong>
+          <p>판매자 페이지에서 객실과 가격을 먼저 등록해야 예약 화면에 노출됩니다.</p>
+        </div>
+      ) : null}
       <div className="room-option-list">
         {roomOptions.map((room) => (
-          <button key={room.name} type="button" className={`room-option-card${selectedRoom.name === room.name ? " is-active" : ""}`} onClick={() => onSelectRoom(room)}>
+          <button
+            key={room.id ?? room.name}
+            type="button"
+            className={`room-option-card${selectedRoom?.id === room.id ? " is-active" : ""}`}
+            onClick={() => onSelectRoom(room)}
+          >
             <div className="room-option-visual" style={{ backgroundImage: `url(${room.image})` }}>
               <span>{room.badge}</span>
             </div>
@@ -59,7 +70,7 @@ export function RoomOptionsSection({ lodging, roomOptions, selectedRoom, onSelec
                 <span>{getRoomMeta(room.name)}</span>
               </div>
               <div className="room-option-inline">
-                <span>{getRoomCapacity(room.name)}</span>
+                <span>{getRoomCapacity(room.name, room.maxGuestCount)}</span>
                 <span>{room.badge}</span>
                 <span>{room.description.split(" · ")[0]}</span>
               </div>
@@ -158,6 +169,18 @@ export function ReviewSection({ authSession, canWriteReview, galleryImages, lodg
 }
 
 export function StickyBookingCard({ lodging, selectedRoom, roomBaseMeta }) {
+  if (!selectedRoom) {
+    return (
+      <aside className="sticky-booking-card">
+        <span className="small-label">예약 요약</span>
+        <div className="list-empty-state">
+          <strong>객실 등록 필요</strong>
+          <p>판매자 페이지에서 객실명과 가격을 먼저 등록해야 예약을 받을 수 있습니다.</p>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="sticky-booking-card">
       <span className="small-label">예약 요약</span>
@@ -165,7 +188,7 @@ export function StickyBookingCard({ lodging, selectedRoom, roomBaseMeta }) {
         <div className="sticky-booking-room-visual" style={{ backgroundImage: `url(${selectedRoom.image})` }} />
         <div className="sticky-booking-room-copy">
           <strong>{getRoomTitle(selectedRoom.name)}</strong>
-          <span>{getRoomCapacity(selectedRoom.name)} · {roomBaseMeta}</span>
+          <span>{getRoomCapacity(selectedRoom.name, selectedRoom.maxGuestCount)} · {roomBaseMeta}</span>
         </div>
       </div>
       <div className="sticky-booking-price">

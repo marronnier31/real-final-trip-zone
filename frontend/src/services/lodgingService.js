@@ -4,11 +4,13 @@ import { get, getApiBaseUrl, post } from "../lib/appClient";
 const FALLBACK_IMAGE =
   "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1400&q=80";
 const LODGINGS_CACHE_KEY = "tripzone-lodgings-cache-v1";
+const LODGINGS_INVALIDATED_AT_KEY = "tripzone-lodgings-invalidated-at";
 const LODGINGS_CACHE_TTL = 1000 * 60 * 5;
 const FALLBACK_COORDS = {
   latitude: 37.5665,
   longitude: 126.978,
 };
+const LODGINGS_INVALIDATED_EVENT = "tripzone:lodgings-invalidated";
 const fallbackLodgingMap = new Map(fallbackLodgings.map((item) => [Number(item.id), item]));
 let lodgingsMemoryCache = null;
 let lodgingsRequestPromise = null;
@@ -207,6 +209,43 @@ function writeCachedLodgings(rows) {
   } catch {
     // 저장 공간 문제는 무시하고 네트워크 결과만 사용한다.
   }
+}
+
+export function invalidateLodgingsCache() {
+  lodgingsMemoryCache = null;
+  lodgingsRequestPromise = null;
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.sessionStorage.removeItem(LODGINGS_CACHE_KEY);
+    window.localStorage.setItem(LODGINGS_INVALIDATED_AT_KEY, String(Date.now()));
+    window.dispatchEvent(new CustomEvent(LODGINGS_INVALIDATED_EVENT));
+  } catch {
+    // 캐시 삭제 실패는 무시한다.
+  }
+}
+
+export function subscribeLodgingsInvalidated(onInvalidate) {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handleStorage = (event) => {
+    if (event.key !== LODGINGS_INVALIDATED_AT_KEY) return;
+    lodgingsMemoryCache = null;
+    lodgingsRequestPromise = null;
+    onInvalidate();
+  };
+
+  window.addEventListener(LODGINGS_INVALIDATED_EVENT, onInvalidate);
+  window.addEventListener("storage", handleStorage);
+  return () => {
+    window.removeEventListener(LODGINGS_INVALIDATED_EVENT, onInvalidate);
+    window.removeEventListener("storage", handleStorage);
+  };
 }
 
 export function getCachedLodgingsSnapshot() {

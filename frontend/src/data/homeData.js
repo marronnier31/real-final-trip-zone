@@ -241,10 +241,35 @@ export const roleData = [
   },
 ];
 
+function toISODate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDefaultStayDates() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const checkIn = new Date(today);
+  checkIn.setDate(today.getDate() + 1);
+
+  const checkOut = new Date(checkIn);
+  checkOut.setDate(checkIn.getDate() + 1);
+
+  return {
+    checkIn: toISODate(checkIn),
+    checkOut: toISODate(checkOut),
+  };
+}
+
+const defaultStayDates = getDefaultStayDates();
+
 export const homeSearchDefaults = {
   keyword: "",
-  checkIn: "2026-03-29",
-  checkOut: "2026-03-30",
+  checkIn: defaultStayDates.checkIn,
+  checkOut: defaultStayDates.checkOut,
   guests: "2",
 };
 

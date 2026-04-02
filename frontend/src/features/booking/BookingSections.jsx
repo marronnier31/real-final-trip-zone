@@ -15,6 +15,7 @@ export function BookingFormSection({
   bookingCouponOptions,
   bookingPaymentOptions,
   formatBookingDate,
+  mileageBalance,
 }) {
   return (
     <div className="booking-form-surface">
@@ -70,7 +71,7 @@ export function BookingFormSection({
           />
         </label>
 
-        <label className="booking-field booking-field-full">
+        <label className="booking-field booking-field-half booking-field-compact">
           <span>객실 타입</span>
           <div className="booking-picker">
             <button
@@ -108,7 +109,7 @@ export function BookingFormSection({
           </div>
         </label>
 
-        <label className="booking-field">
+        <label className="booking-field booking-field-half">
           <span>투숙 인원</span>
           <div className="booking-guest-stepper">
             <div className="booking-guest-copy">
@@ -135,7 +136,7 @@ export function BookingFormSection({
           </div>
         </label>
 
-        <label className="booking-field">
+        <label className="booking-field booking-field-half">
           <span>쿠폰</span>
           <div className="booking-picker">
             <button
@@ -145,7 +146,7 @@ export function BookingFormSection({
             >
               <div className="booking-picker-copy">
                 <strong>{selectedCoupon.label}</strong>
-                <span>{selectedCoupon.discount > 0 ? `-${selectedCoupon.discount.toLocaleString()}원` : "할인 없음"}</span>
+                <span>{selectedCoupon.discount > 0 ? selectedCoupon.discountLabel : "할인 없음"}</span>
               </div>
               <span className="booking-picker-arrow">⌄</span>
             </button>
@@ -164,13 +165,53 @@ export function BookingFormSection({
                       }}
                     >
                       <strong>{item.label}</strong>
-                      <span>{item.discount > 0 ? `-${item.discount.toLocaleString()}원` : "할인 없음"}</span>
+                      <span>{item.discount > 0 ? item.discountLabel : "할인 없음"}</span>
                     </button>
                   );
                 })}
               </div>
             )}
           </div>
+        </label>
+
+        <label className="booking-field booking-field-half">
+          <span>마일리지</span>
+          <div className="booking-inline-input">
+            <input
+              type="number"
+              min="0"
+              step="1000"
+              className="booking-number-input"
+              value={form.mileageToUse}
+              disabled={!authSession || mileageBalance <= 0}
+              placeholder="0"
+              onChange={(event) => {
+                const nextValue = Number(event.target.value);
+                setForm((current) => ({
+                  ...current,
+                  mileageToUse: Math.max(0, Number.isFinite(nextValue) ? nextValue : 0),
+                }));
+              }}
+            />
+            <button
+              type="button"
+              className="secondary-button booking-inline-button"
+              disabled={!authSession || mileageBalance <= 0}
+              onClick={() =>
+                setForm((current) => ({
+                  ...current,
+                  mileageToUse: mileageBalance,
+                }))
+              }
+            >
+              전액 사용
+            </button>
+          </div>
+          <small>
+            {authSession
+              ? `보유 ${Number(mileageBalance ?? 0).toLocaleString()}P`
+              : "로그인 후 보유 마일리지를 사용할 수 있습니다"}
+          </small>
         </label>
 
         <label className="booking-field booking-field-full">
@@ -232,13 +273,17 @@ export function BookingSummarySection({
   nightCount,
   roomTotal,
   serviceFee,
+  mileageUsed,
   totalAmount,
   form,
   selectedCoupon,
   selectedPayment,
   bookingStatusNotes,
   authSession,
-  ctaHref,
+  canSubmit,
+  isSubmitting,
+  submitError,
+  onSubmit,
 }) {
   return (
     <div className="booking-payment-card">
@@ -272,9 +317,15 @@ export function BookingSummarySection({
           <strong>-{selectedCoupon.discount.toLocaleString()}원</strong>
         </div>
         <div className="booking-summary-row">
-          <span>서비스 수수료</span>
-          <strong>{serviceFee.toLocaleString()}원</strong>
+          <span>마일리지 사용</span>
+          <strong>-{mileageUsed.toLocaleString()}P</strong>
         </div>
+        {serviceFee > 0 ? (
+          <div className="booking-summary-row">
+            <span>서비스 수수료</span>
+            <strong>{serviceFee.toLocaleString()}원</strong>
+          </div>
+        ) : null}
         <div className="booking-summary-row total">
           <span>총 결제 예정</span>
           <strong>{totalAmount.toLocaleString()}원</strong>
@@ -295,9 +346,15 @@ export function BookingSummarySection({
         ))}
       </div>
 
-      <Link className="primary-button booking-card-button" to={ctaHref}>
-        {authSession ? "예약 완료 화면으로 이동" : "로그인 후 예약 진행"}
-      </Link>
+      {submitError ? <p className="booking-submit-error">{submitError}</p> : null}
+      <button
+        type="button"
+        className={`primary-button booking-card-button${canSubmit ? "" : " is-disabled"}`}
+        disabled={!canSubmit}
+        onClick={onSubmit}
+      >
+        {isSubmitting ? "예약을 생성하는 중..." : authSession ? "결제 후 예약 완료" : "로그인 후 예약 진행"}
+      </button>
     </div>
   );
 }

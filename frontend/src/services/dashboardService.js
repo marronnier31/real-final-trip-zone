@@ -1,5 +1,6 @@
 import { readAuthSession } from "../features/auth/authSession";
-import { get, patch, post, put } from "../lib/appClient";
+import { del, get, patch, post, put } from "../lib/appClient";
+import { invalidateLodgingsCache } from "./lodgingService";
 import { getSellerInquiryRooms } from "./sellerInquiryService";
 
 function formatDateLabel(value) {
@@ -76,7 +77,10 @@ function mapHostProfileDto(dto) {
     status: dto.enabled === "0" ? "SUSPENDED" : dto.approvalStatus ?? "PENDING",
     region: "-",
     businessNo: dto.businessNumber ?? "-",
+    account: dto.account ?? "-",
     rejectReason: dto.rejectReason ?? "",
+    submittedAt: dto.regDate ?? "",
+    updatedAt: dto.updDate ?? "",
   };
 }
 
@@ -178,20 +182,35 @@ function mapSellerLodgingDto(dto) {
     roomCount,
     occupancy: "-",
     inquiryCount: 0,
+    address: dto.address ?? "",
+    detailAddress: dto.detailAddress ?? "",
+    zipCode: dto.zipCode ?? "",
+    latitude: dto.latitude ?? "",
+    longitude: dto.longitude ?? "",
+    description: dto.description ?? "",
+    checkInTime: dto.checkInTime ?? "15:00",
+    checkOutTime: dto.checkOutTime ?? "11:00",
     uploadFileNames: dto.uploadFileNames ?? [],
     rooms: dto.rooms ?? [],
   };
 }
 
-function mapSellerRoomDto(room, lodgingName) {
+function mapSellerRoomDto(room, lodging) {
   return {
     id: room.roomNo,
+    roomNo: room.roomNo,
+    lodgingId: room.lodgingNo ?? lodging?.id ?? null,
     name: room.roomName ?? `객실 ${room.roomNo}`,
     type: room.roomType ?? "-",
-    lodging: lodgingName,
+    lodging: lodging?.name ?? "-",
     status: room.status ?? "UNAVAILABLE",
     capacity: room.maxGuestCount ? `${room.maxGuestCount}인` : "-",
     price: formatMoney(room.pricePerNight),
+    description: room.roomDescription ?? "",
+    maxGuestCount: Number(room.maxGuestCount ?? 0),
+    pricePerNight: Number(room.pricePerNight ?? 0),
+    roomCount: Number(room.roomCount ?? 1),
+    imageUrls: room.imageUrls ?? [],
   };
 }
 
@@ -429,11 +448,66 @@ export async function getSellerLodgings() {
   return lodgings.map(mapSellerLodgingDto);
 }
 
+export async function createSellerLodging(payload) {
+  const formData = new FormData();
+  formData.append("lodgingName", payload.name.trim());
+  formData.append("lodgingType", payload.type);
+  formData.append("region", payload.region.trim());
+  formData.append("address", payload.address.trim());
+  formData.append("detailAddress", payload.detailAddress.trim());
+  formData.append("zipCode", payload.zipCode.trim());
+  formData.append("latitude", String(Number(payload.latitude)));
+  formData.append("longitude", String(Number(payload.longitude)));
+  formData.append("description", payload.description.trim());
+  formData.append("checkInTime", payload.checkInTime);
+  formData.append("checkOutTime", payload.checkOutTime);
+  formData.append("status", payload.status ?? "ACTIVE");
+  (payload.files ?? []).forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await post("/api/lodgings/", formData);
+  invalidateLodgingsCache();
+  return mapSellerLodgingDto(response);
+}
+
 export async function updateSellerLodgingStatus(lodgingId, nextStatus) {
   const formData = new FormData();
   formData.append("status", nextStatus);
   const response = await patch(`/api/lodgings/${lodgingId}`, formData);
+  invalidateLodgingsCache();
   return mapSellerLodgingDto(response);
+}
+
+export async function updateSellerLodging(lodgingId, payload) {
+  const formData = new FormData();
+  formData.append("lodgingName", payload.name.trim());
+  formData.append("lodgingType", payload.type);
+  formData.append("region", payload.region.trim());
+  formData.append("address", payload.address.trim());
+  formData.append("detailAddress", payload.detailAddress.trim());
+  formData.append("zipCode", payload.zipCode.trim());
+  formData.append("latitude", String(Number(payload.latitude)));
+  formData.append("longitude", String(Number(payload.longitude)));
+  formData.append("description", payload.description.trim());
+  formData.append("checkInTime", payload.checkInTime);
+  formData.append("checkOutTime", payload.checkOutTime);
+  formData.append("status", payload.status ?? "ACTIVE");
+  (payload.uploadFileNames ?? []).forEach((fileName) => {
+    formData.append("uploadFileNames", fileName);
+  });
+  (payload.files ?? []).forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await patch(`/api/lodgings/${lodgingId}`, formData);
+  invalidateLodgingsCache();
+  return mapSellerLodgingDto(response);
+}
+
+export async function deleteSellerLodging(lodgingId) {
+  await del(`/api/lodgings/${lodgingId}`);
+  invalidateLodgingsCache();
 }
 
 export async function getSellerReservations() {
@@ -451,7 +525,7 @@ export async function updateSellerReservationStatus(bookingNo, nextStatus) {
 export async function getSellerRooms() {
   const lodgings = await getSellerLodgings();
   return lodgings.flatMap((lodging) =>
-    (lodging.rooms ?? []).map((room) => mapSellerRoomDto(room, lodging.name)),
+    (lodging.rooms ?? []).map((room) => mapSellerRoomDto(room, lodging)),
   );
 }
 
@@ -459,7 +533,44 @@ export async function updateSellerRoomStatus(roomId, nextStatus, lodgingName) {
   const response = await patch(`/api/rooms/${roomId}`, {
     status: nextStatus,
   });
-  return mapSellerRoomDto(response, lodgingName);
+  invalidateLodgingsCache();
+  return mapSellerRoomDto(response, { name: lodgingName, id: response.lodgingNo ?? null });
+}
+
+export async function createSellerRoom(payload) {
+  const response = await post("/api/rooms", {
+    lodgingNo: Number(payload.lodgingId),
+    roomName: payload.name.trim(),
+    roomType: payload.type.trim(),
+    roomDescription: payload.description.trim(),
+    maxGuestCount: Number(payload.maxGuestCount),
+    pricePerNight: Number(payload.pricePerNight),
+    roomCount: Number(payload.roomCount),
+    status: payload.status ?? "AVAILABLE",
+  });
+  invalidateLodgingsCache();
+  return mapSellerRoomDto(response, { name: payload.lodgingName, id: Number(payload.lodgingId) });
+}
+
+export async function updateSellerRoom(roomId, payload) {
+  const response = await patch(`/api/rooms/${roomId}`, {
+    lodgingNo: Number(payload.lodgingId),
+    roomName: payload.name.trim(),
+    roomType: payload.type.trim(),
+    roomDescription: payload.description.trim(),
+    maxGuestCount: Number(payload.maxGuestCount),
+    pricePerNight: Number(payload.pricePerNight),
+    roomCount: Number(payload.roomCount),
+    status: payload.status,
+  });
+  invalidateLodgingsCache();
+  return mapSellerRoomDto(response, { name: payload.lodgingName, id: Number(payload.lodgingId) });
+}
+
+export async function deleteSellerRoom(roomId) {
+  await del(`/api/rooms/${roomId}`);
+  invalidateLodgingsCache();
+  return { id: roomId };
 }
 
 export async function getSellerAssets() {
@@ -498,9 +609,49 @@ export async function updateSellerAsset(assetId, patchData) {
     uploadFileNames.forEach((fileName) => formData.append("uploadFileNames", fileName));
     return formData;
   })());
+  invalidateLodgingsCache();
 
   const refreshedAssets = await getSellerAssets();
   return refreshedAssets.find((item) => item.fileName === target.fileName && item.lodgingId === target.lodgingId) ?? null;
+}
+
+export async function uploadSellerAsset(lodgingId, files) {
+  if (!lodgingId) {
+    throw new Error("이미지를 추가할 숙소를 선택해 주세요.");
+  }
+
+  const lodging = await get(`/api/lodgings/${lodgingId}`);
+  const formData = new FormData();
+  (lodging.uploadFileNames ?? []).forEach((fileName) => {
+    formData.append("uploadFileNames", fileName);
+  });
+  Array.from(files ?? []).forEach((file) => {
+    formData.append("files", file);
+  });
+
+  await patch(`/api/lodgings/${lodgingId}`, formData);
+  invalidateLodgingsCache();
+  return getSellerAssets();
+}
+
+export async function deleteSellerAsset(assetId) {
+  const currentAssets = await getSellerAssets();
+  const target = currentAssets.find((item) => item.id === assetId);
+
+  if (!target?.fileName) {
+    throw new Error("삭제할 이미지가 없습니다.");
+  }
+
+  const lodging = await get(`/api/lodgings/${target.lodgingId}`);
+  const uploadFileNames = (lodging.uploadFileNames ?? []).filter((fileName) => fileName !== target.fileName);
+  const formData = new FormData();
+  uploadFileNames.forEach((fileName) => {
+    formData.append("uploadFileNames", fileName);
+  });
+
+  await patch(`/api/lodgings/${target.lodgingId}`, formData);
+  invalidateLodgingsCache();
+  return getSellerAssets();
 }
 
 export function getSellerApplicationTemplate() {
@@ -523,12 +674,13 @@ export function getSellerApplicationSteps() {
 export async function getSellerApplicationDraft() {
   const host = await getCurrentHostProfile();
   const submittedAtSource = host?.updDate ?? host?.regDate ?? null;
+  const status = host?.enabled === "0" ? "SUSPENDED" : host?.approvalStatus ?? "READY";
   return {
-    status: host?.approvalStatus ?? "READY",
+    status,
     businessNo: host?.businessNumber ?? "",
     businessName: host?.businessName ?? "",
     owner: host?.ownerName ?? "",
-    account: "",
+    account: host?.account ?? "",
     submittedAt: submittedAtSource ? formatDateTimeLabel(submittedAtSource) : null,
   };
 }
@@ -553,6 +705,8 @@ export async function submitSellerApplication(form) {
     await post("/api/hosts/register", payload);
   } else if (host.approvalStatus === "REJECTED") {
     await patch(`/api/hosts/${host.hostNo}`, payload);
+  } else if (host.enabled === "0") {
+    throw new Error("중지된 호스트 계정입니다. 관리자에게 문의해 주세요.");
   } else if (host.approvalStatus === "PENDING") {
     throw new Error("이미 승인 대기 중인 신청서가 있습니다.");
   } else if (host.approvalStatus === "APPROVED") {

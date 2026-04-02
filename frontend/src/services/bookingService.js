@@ -1,6 +1,6 @@
+import { post } from "../lib/appClient";
 import {
   bookingChecklist,
-  bookingCouponOptions,
   bookingPaymentOptions,
   bookingStatusNotes,
 } from "../data/bookingData";
@@ -13,14 +13,18 @@ export function getBookingChecklist() {
   return bookingChecklist;
 }
 
-export function getBookingCouponOptions() {
-  return bookingCouponOptions;
-}
-
 export function getBookingPaymentOptions() {
   return bookingPaymentOptions;
 }
 
 export function getBookingStatusNotes() {
   return bookingStatusNotes;
+}
+
+export async function createBookingReservation(payload) {
+  return post("/api/mypage/bookings", payload);
+}
+
+export async function createBookingPayment(payload) {
+  return post("/api/payments", payload);
 }

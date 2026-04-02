@@ -1,5 +1,13 @@
 import { Link } from "react-router-dom";
 
+function formatCardPrice(priceLabel) {
+  if (!priceLabel || priceLabel === "문의 필요" || priceLabel.endsWith("~")) {
+    return priceLabel;
+  }
+
+  return `${priceLabel}~`;
+}
+
 export function HomePromoSection({ promoBanners }) {
   return (
     <section className="home-section">
@@ -54,7 +62,7 @@ export function HomeCollectionSection({ collection, cards }) {
                     <span className="showcase-discount">{lodging.discountRate}</span>
                     <span className="showcase-original-price">{lodging.originalPrice}</span>
                   </div>
-                  <span className="showcase-price">{lodging.price}</span>
+                  <span className="showcase-price">{formatCardPrice(lodging.price)}</span>
                 </div>
               </div>
             </div>

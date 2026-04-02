@@ -11,7 +11,7 @@ import {
   readRecentSearches,
   writeRecentSearches,
 } from "../../features/home/homeViewModel";
-import { getCachedLodgingsSnapshot, getLodgingCollections, getLodgings, getSearchSuggestionItems } from "../../services/lodgingService";
+import { getCachedLodgingsSnapshot, getLodgingCollections, getLodgings, getSearchSuggestionItems, subscribeLodgingsInvalidated } from "../../services/lodgingService";
 
 export default function HomePage() {
   const cachedLodgings = getCachedLodgingsSnapshot();
@@ -97,8 +97,13 @@ export default function HomePage() {
 
     loadHomeData();
 
+    const unsubscribe = subscribeLodgingsInvalidated(() => {
+      loadHomeData();
+    });
+
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 

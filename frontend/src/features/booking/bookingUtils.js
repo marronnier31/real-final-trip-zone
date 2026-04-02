@@ -12,6 +12,22 @@ export function parseISO(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+export function startOfDay(date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+export function addDays(date, amount) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+export function isBeforeDate(left, right) {
+  return startOfDay(left).getTime() < startOfDay(right).getTime();
+}
+
 export function toISO(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");

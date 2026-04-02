@@ -3,6 +3,14 @@ import { MapContainer, Marker, Popup } from "react-leaflet";
 import OpenFreeMapLayer from "../../components/common/OpenFreeMapLayer";
 import { buildPriceMarkerIcon, buildPriceMeta } from "./lodgingListUtils";
 
+function formatCardPrice(priceLabel) {
+  if (!priceLabel || priceLabel === "문의 필요" || priceLabel.endsWith("~")) {
+    return priceLabel;
+  }
+
+  return `${priceLabel}~`;
+}
+
 function getMapCenter(rows) {
   return [
     rows.reduce((sum, item) => sum + Number(item.latitude), 0) / rows.length,
@@ -88,7 +96,7 @@ export function LodgingResultsLayout({
                         </div>
                       ) : null}
                       <div className="lodging-compact-price">
-                        <strong>{priceMeta.current}</strong>
+                        <strong>{formatCardPrice(priceMeta.current)}</strong>
                         <span>/ 1박</span>
                       </div>
                     </div>

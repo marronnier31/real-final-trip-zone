@@ -11,7 +11,7 @@ import {
 } from "../../features/lodging-detail/lodgingDetailViewModel";
 import { buildGalleryImages, getRoomMeta } from "../../features/lodging-detail/lodgingDetailUtils";
 import { createLodgingReview, getLodgingDetailById, getLodgingReviews, uploadLodgingReviewImages } from "../../services/lodgingService";
-import { getMyBookings } from "../../services/mypageService";
+import { getMyBookings, getMyWishlist, toggleMyWishlist } from "../../services/mypageService";
 import {
   findMyInquiryRoomByLodgingId,
   getSellerInquiryMessages,
@@ -66,10 +66,14 @@ export default function LodgingDetailPage() {
   const [myBookingRows, setMyBookingRows] = useState([]);
   const roomOptions = useMemo(() => (lodging ? buildRoomOptions(lodging) : []), [lodging]);
   const propertyStory = useMemo(() => (lodging ? buildPropertyStory(lodging) : []), [lodging]);
-  const galleryImages = useMemo(() => buildGalleryImages(lodging?.image ?? ""), [lodging?.image]);
+  const galleryImages = useMemo(
+    () => buildGalleryImages(lodging?.galleryImages?.length ? lodging.galleryImages : [lodging?.image].filter(Boolean)),
+    [lodging?.galleryImages, lodging?.image],
+  );
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedImage, setSelectedImage] = useState("");
   const [wishlisted, setWishlisted] = useState(false);
+  const [isWishlistSaving, setIsWishlistSaving] = useState(false);
   const [shareLabel, setShareLabel] = useState("공유하기");
   const [isInquiryOpen, setIsInquiryOpen] = useState(false);
   const [chatDraft, setChatDraft] = useState("");
@@ -182,6 +186,33 @@ export default function LodgingDetailPage() {
   }, [authSession?.accessToken]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadWishlistState() {
+      if (!authSession?.accessToken || !lodging?.id) {
+        setWishlisted(false);
+        return;
+      }
+
+      try {
+        const rows = await getMyWishlist();
+        if (cancelled) return;
+        setWishlisted(rows.some((item) => Number(item.lodgingId) === Number(lodging.id)));
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load wishlist state.", error);
+        }
+      }
+    }
+
+    loadWishlistState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authSession?.accessToken, lodging?.id]);
+
+  useEffect(() => {
     if (!roomOptions.length) return;
     setSelectedRoom(roomOptions[0]);
   }, [roomOptions]);
@@ -273,6 +304,27 @@ export default function LodgingDetailPage() {
       }
     } catch {
       setShareLabel("공유하기");
+    }
+  };
+
+  const handleWishlistToggle = async () => {
+    if (!authSession?.accessToken) {
+      navigate("/login");
+      return;
+    }
+
+    if (isWishlistSaving || !lodging?.id) {
+      return;
+    }
+
+    try {
+      setIsWishlistSaving(true);
+      const result = await toggleMyWishlist(lodging.id);
+      setWishlisted(result.wished);
+    } catch (error) {
+      console.error("Failed to toggle wishlist.", error);
+    } finally {
+      setIsWishlistSaving(false);
     }
   };
 
@@ -375,7 +427,13 @@ export default function LodgingDetailPage() {
     }
   };
 
-  if (!lodging || !selectedRoom) {
+  const handleInquiryDraftKeyDown = (event) => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+
+  if (!lodging) {
     return (
       <div className="container page-stack">
         <section className="list-empty-state list-empty-state-full">
@@ -385,6 +443,8 @@ export default function LodgingDetailPage() {
       </div>
     );
   }
+
+  const photoIndex = galleryImages.length ? Math.max(galleryImages.indexOf(selectedImage) + 1, 1) : 1;
 
   return (
     <div className="container page-stack">
@@ -416,8 +476,13 @@ export default function LodgingDetailPage() {
             <Link className="primary-button" to={`/booking/${lodging.id}`}>
               예약하기
             </Link>
-            <button type="button" className={`detail-utility-button detail-utility-button-like${wishlisted ? " is-active" : ""}`} onClick={() => setWishlisted((current) => !current)}>
-              {wishlisted ? "찜 완료" : "찜하기"}
+            <button
+              type="button"
+              className={`detail-utility-button detail-utility-button-like${wishlisted ? " is-active" : ""}`}
+              onClick={handleWishlistToggle}
+              disabled={isWishlistSaving}
+            >
+              {isWishlistSaving ? "저장 중..." : wishlisted ? "찜 완료" : "찜하기"}
             </button>
             <button type="button" className="detail-utility-button detail-utility-button-share" onClick={handleShare}>
               {shareLabel}
@@ -441,8 +506,8 @@ export default function LodgingDetailPage() {
         ))}
       </div>
       <div className="detail-photo-meta">
-        <strong>숙소 사진 {galleryImages.indexOf(selectedImage) + 1}</strong>
-        <span>{selectedRoom.name} 기준 객실/공용 공간 이미지를 먼저 확인하세요.</span>
+        <strong>숙소 사진 {photoIndex}</strong>
+        <span>{selectedRoom ? `${selectedRoom.name} 기준 객실/공용 공간 이미지를 먼저 확인하세요.` : "대표 숙소 이미지를 먼저 확인하세요."}</span>
       </div>
 
       <section className="detail-grid">
@@ -466,7 +531,7 @@ export default function LodgingDetailPage() {
               <strong>체크아웃</strong>
               <p>{lodging.checkOutTime}</p>
             </div>
-            <div className="detail-info-item">
+            <div className="detail-info-item detail-info-item-policy">
               <strong>취소 정책</strong>
               <p>{lodging.cancellation}</p>
             </div>
@@ -570,7 +635,7 @@ export default function LodgingDetailPage() {
 
             <div className="lodging-inquiry-summary">
               <strong>{lodging.name}</strong>
-              <span>{selectedRoom.name} · {lodging.checkInTime} 체크인 · {lodging.cancellation}</span>
+              <span>{selectedRoom ? `${selectedRoom.name} · ` : ""}{lodging.checkInTime} 체크인 · {lodging.cancellation}</span>
             </div>
 
             <div className="lodging-inquiry-thread" ref={inquiryThreadRef}>
@@ -592,6 +657,7 @@ export default function LodgingDetailPage() {
               <textarea
                 value={chatDraft}
                 onChange={(event) => setChatDraft(event.target.value)}
+                onKeyDown={handleInquiryDraftKeyDown}
                 placeholder="체크인 시간, 주차, 바비큐, 객실 배정처럼 예약 전 확인할 내용을 남겨보세요."
                 rows={3}
               />

@@ -14,7 +14,7 @@ import {
   parseLodgingSearchState,
 } from "../../features/lodging-list/lodgingListViewModel";
 import { clamp, formatDateSummary, parseISO, toISO } from "../../features/lodging-list/lodgingListUtils";
-import { getCachedLodgingsSnapshot, getLodgings, getSearchSuggestionItems } from "../../services/lodgingService";
+import { getCachedLodgingsSnapshot, getLodgings, getSearchSuggestionItems, subscribeLodgingsInvalidated } from "../../services/lodgingService";
 
 export default function LodgingListPage() {
   const cachedLodgings = getCachedLodgingsSnapshot();
@@ -76,8 +76,13 @@ export default function LodgingListPage() {
 
     loadLodgingData();
 
+    const unsubscribe = subscribeLodgingsInvalidated(() => {
+      loadLodgingData();
+    });
+
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 

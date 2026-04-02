@@ -40,35 +40,19 @@ export function buildPropertyStory(lodging) {
 }
 
 export function buildRoomOptions(lodging) {
-  const basePrice = Number(String(lodging.price).replace(/[^\d]/g, ""));
-  const toPrice = (value) => `${value.toLocaleString()}원`;
+  const rooms = Array.isArray(lodging.rooms) ? lodging.rooms : [];
 
-  return [
-    {
-      name: lodging.room,
-      image: lodging.image,
-      price: lodging.price,
-      originalPrice: "",
-      badge: "기본가",
-      description: lodging.highlights.slice(0, 2).join(" · "),
-    },
-    {
-      name: `${lodging.room} · 조식 포함`,
-      image: `${lodging.image}&sat=-12&exp=6`,
-      price: toPrice(basePrice + 20000),
-      originalPrice: toPrice(basePrice + 26000),
-      badge: "인기",
-      description: `조식 포함 · ${lodging.benefit}`,
-    },
-    {
-      name: `${lodging.room} · 환불형`,
-      image: `${lodging.image}&sat=8&exp=10`,
-      price: toPrice(basePrice + 12000),
-      originalPrice: toPrice(basePrice + 18000),
-      badge: "무료 취소",
-      description: lodging.cancellation,
-    },
-  ];
+  return rooms.map((room, index) => ({
+    id: room.roomId ?? `${lodging.id}-${index}`,
+    name: room.name,
+    image: room.imageUrls?.[0] ?? lodging.image,
+    price: room.price,
+    originalPrice: "",
+    badge: index === 0 ? "기본가" : room.type ?? "객실",
+    description: room.description?.trim() || lodging.highlights.slice(0, 2).join(" · "),
+    maxGuestCount: room.maxGuestCount ?? 2,
+    roomCount: room.roomCount ?? 1,
+  }));
 }
 
 export function getReviewAverage(reviews) {

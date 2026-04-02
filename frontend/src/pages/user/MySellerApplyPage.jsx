@@ -13,6 +13,7 @@ function getStatusLabel(status) {
   if (status === "PENDING") return "승인 대기";
   if (status === "APPROVED") return "승인 완료";
   if (status === "REJECTED") return "반려";
+  if (status === "SUSPENDED") return "중지";
   return status;
 }
 
@@ -45,7 +46,13 @@ export default function MySellerApplyPage() {
   const sellerApplicationStatus = getSellerApplicationTemplate();
   const sellerApplicationSteps = getSellerApplicationSteps();
   const statusToneClass =
-    status === "APPROVED" ? "is-approved" : status === "REJECTED" ? "is-rejected" : "is-pending";
+    status === "APPROVED"
+      ? "is-approved"
+      : status === "REJECTED"
+        ? "is-rejected"
+        : status === "SUSPENDED"
+          ? "is-suspended"
+          : "is-pending";
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +138,11 @@ export default function MySellerApplyPage() {
             <div className="seller-apply-hero-copy">
               <span className="seller-apply-eyebrow">Seller Onboarding</span>
               <strong>{getStatusLabel(status)} 상태입니다.</strong>
-              <p>신청 후 승인 전까지는 일반회원 흐름을 유지하고, 승인 완료 시 판매자센터 기능이 열립니다.</p>
+              <p>
+                {status === "SUSPENDED"
+                  ? "현재 판매자 기능이 중지된 상태입니다. 상세 사유는 관리자에게 확인해 주세요."
+                  : "신청 후 승인 전까지는 일반회원 흐름을 유지하고, 승인 완료 시 판매자센터 기능이 열립니다."}
+              </p>
             </div>
             <div className={`seller-apply-status-card ${statusToneClass}`}>
               <span>현재 상태</span>
@@ -213,7 +224,7 @@ export default function MySellerApplyPage() {
               </div>
 
               <div className="seller-apply-action-bar">
-                <button type="submit" className="coupon-action-button inquiry-submit-link" disabled={isSubmitting}>
+                <button type="submit" className="coupon-action-button inquiry-submit-link" disabled={isSubmitting || status === "SUSPENDED"}>
                   {isSubmitting ? "제출 중..." : "신청 제출"}
                 </button>
                 <Link className="text-link" to="/my/profile">내 정보 관리</Link>

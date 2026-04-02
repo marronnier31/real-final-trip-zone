@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
-import { getSellerAssets, updateSellerAsset } from "../../services/dashboardService";
+import {
+  deleteSellerAsset,
+  getSellerAssets,
+  uploadSellerAsset,
+  updateSellerAsset,
+} from "../../services/dashboardService";
 
 const columns = [
   { key: "lodging", label: "숙소명" },
@@ -15,6 +20,8 @@ export default function SellerAssetsPage() {
   const [selectedKey, setSelectedKey] = useState(null);
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadFiles, setUploadFiles] = useState([]);
   const selected = rows.find((row) => row.id === selectedKey) ?? rows[0];
 
   useEffect(() => {
@@ -48,13 +55,52 @@ export default function SellerAssetsPage() {
   const updateSelected = async (patch) => {
     if (!selected) return;
     try {
+      setIsSubmitting(true);
       const updated = await updateSellerAsset(selected.id, patch);
       const nextRows = await getSellerAssets();
       setRows(nextRows);
       setSelectedKey(updated?.id ?? nextRows[0]?.id ?? null);
-      setNotice(patch.mode === "PRIMARY" ? "대표 이미지를 변경했습니다." : "이미지를 마지막 순서로 이동했습니다.");
+      setNotice("대표 이미지를 변경했습니다.");
     } catch (error) {
       setNotice(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selected?.lodgingId) return;
+    if (!uploadFiles.length) {
+      setNotice("첨부할 이미지를 선택해 주세요.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const nextRows = await uploadSellerAsset(selected.lodgingId, uploadFiles);
+      setRows(nextRows);
+      setSelectedKey(nextRows.find((row) => row.lodgingId === selected.lodgingId)?.id ?? nextRows[0]?.id ?? null);
+      setUploadFiles([]);
+      setNotice("이미지를 첨부했습니다.");
+    } catch (error) {
+      setNotice(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selected?.fileName) return;
+    try {
+      setIsSubmitting(true);
+      const nextRows = await deleteSellerAsset(selected.id);
+      setRows(nextRows);
+      setSelectedKey(nextRows.find((row) => row.lodgingId === selected.lodgingId)?.id ?? nextRows[0]?.id ?? null);
+      setNotice("이미지를 삭제했습니다.");
+    } catch (error) {
+      setNotice(error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -85,8 +131,25 @@ export default function SellerAssetsPage() {
           <h3>{selected?.lodging ?? "—"}</h3>
           <p>{selected?.type} · 순서 {selected?.order}</p>
           <div className="dash-action-grid">
-            <button type="button" className="dash-action-btn is-primary" onClick={() => updateSelected({ mode: "PRIMARY" })} disabled={!selected || !selected.fileName}>대표 지정</button>
-            <button type="button" className="dash-action-btn is-danger" onClick={() => updateSelected({ mode: "LAST" })} disabled={!selected || !selected.fileName}>뒤로 이동</button>
+            <button type="button" className="dash-action-btn is-primary" onClick={() => updateSelected({ mode: "PRIMARY" })} disabled={!selected || !selected.fileName || isSubmitting}>대표 지정</button>
+            <button type="button" className="dash-action-btn is-danger" onClick={handleDelete} disabled={!selected || !selected.fileName || isSubmitting}>이미지 삭제</button>
+          </div>
+          <div className="dash-create-form-grid seller-assets-upload-grid">
+            <label className="dash-field dash-field-wide">
+              <span>이미지 첨부</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(event) => setUploadFiles(Array.from(event.target.files ?? []))}
+              />
+              {uploadFiles.length ? <small>새 이미지 {uploadFiles.length}장 선택</small> : null}
+            </label>
+            <div className="dash-create-form-actions">
+              <button type="button" className="dash-action-btn" onClick={handleUpload} disabled={!selected?.lodgingId || !uploadFiles.length || isSubmitting}>
+                {isSubmitting ? "처리 중..." : "이미지 첨부"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

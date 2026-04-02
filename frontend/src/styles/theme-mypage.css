@@ -1457,6 +1457,10 @@
   color: #b25858;
 }
 
+.seller-apply-status-card.is-suspended strong {
+  color: #b91c1c;
+}
+
 .seller-apply-glance-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

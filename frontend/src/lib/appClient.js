@@ -95,6 +95,7 @@ async function requestAccessTokenRefresh() {
 
 async function request(path, options = {}, retry = true) {
   const isJsonBody = options.body && !(options.body instanceof FormData);
+  const hasAuthSession = Boolean(readAuthSession()?.accessToken);
   const response = await fetch(buildUrl(path), {
     ...options,
     headers: getAuthHeaders({
@@ -103,7 +104,14 @@ async function request(path, options = {}, retry = true) {
     }),
   });
 
-  if (response.status === 401 && retry && path !== "/api/auth/refresh" && !path.startsWith("/api/auth/login")) {
+  const shouldRetryRefresh =
+    retry &&
+    hasAuthSession &&
+    (response.status === 401 || response.status === 403) &&
+    path !== "/api/auth/refresh" &&
+    !path.startsWith("/api/auth/login");
+
+  if (shouldRetryRefresh) {
     const refreshedSession = await requestAccessTokenRefresh();
     if (refreshedSession) {
       return request(path, options, false);

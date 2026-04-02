@@ -112,6 +112,12 @@ export default function SellerInquiriesPage() {
     }
   };
 
+  const handleDraftKeyDown = (event) => {
+    if (event.key !== "Enter" || event.shiftKey) return;
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+
   return (
     <DashboardLayout role="seller">
       <div className="dash-page-header">
@@ -204,6 +210,7 @@ export default function SellerInquiriesPage() {
             <textarea
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={handleDraftKeyDown}
               placeholder="회원 문의에 바로 답변을 남기세요."
               rows={3}
             />

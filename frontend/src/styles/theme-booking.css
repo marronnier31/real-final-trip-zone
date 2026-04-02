@@ -70,6 +70,10 @@
   grid-column: 1 / -1;
 }
 
+.booking-field-half {
+  grid-column: span 1;
+}
+
 .booking-field {
   display: grid;
   gap: 6px;
@@ -97,6 +101,19 @@
 .booking-date-field {
   position: relative;
   overflow: hidden;
+  grid-column: span 1;
+}
+
+.booking-field-compact {
+  padding-bottom: 10px;
+}
+
+.booking-field-compact .booking-picker-trigger {
+  padding-block: 10px;
+}
+
+.booking-field-compact .booking-picker-copy {
+  gap: 2px;
 }
 
 .booking-date-hitbox {
@@ -217,6 +234,66 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+}
+
+.booking-inline-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.booking-number-input {
+  width: 100%;
+  min-width: 0;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid rgba(29, 38, 31, 0.1);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.booking-number-input:disabled {
+  background: rgba(248, 250, 248, 0.9);
+  color: rgba(29, 38, 31, 0.38);
+}
+
+.booking-inline-button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.booking-submit-error {
+  margin: 0;
+  color: #b45a18;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+@media (max-width: 1200px) {
+  .booking-date-field,
+  .booking-field-half {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .booking-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-date-field,
+  .booking-field-half,
+  .booking-field-full {
+    grid-column: 1 / -1;
+  }
+
+  .booking-inline-input {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .booking-guest-controls strong {
