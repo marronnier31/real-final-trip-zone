@@ -472,6 +472,13 @@ export default function LodgingDetailPage() {
       });
   };
 
+  const handleReviewImageRemove = (fileName) => {
+    setReviewDraft((current) => ({
+      ...current,
+      images: current.images.filter((image) => image.fileName !== fileName),
+    }));
+  };
+
   const handleReviewEdit = (review) => {
     setReviewDraft({
       reviewId: review.id,
@@ -751,6 +758,7 @@ export default function LodgingDetailPage() {
               onChangeDraft={(patch) => setReviewDraft((current) => ({ ...current, ...patch }))}
               onSubmit={handleReviewSubmit}
               onImageChange={handleReviewImages}
+              onImageRemove={handleReviewImageRemove}
               onEdit={handleReviewEdit}
               onDelete={handleReviewDelete}
             />

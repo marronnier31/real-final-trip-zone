@@ -7,6 +7,7 @@ import {
   createAdminEvent,
   deleteAdminCoupon,
   deleteAdminEvent,
+  getAdminEventDetail,
   getAdminEvents,
   saveAdminEvent,
   updateAdminEventStatus,
@@ -39,6 +40,7 @@ export default function AdminEventsPage() {
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [uploadFile, setUploadFile] = useState(null);
+  const [selectedCouponNo, setSelectedCouponNo] = useState("");
   const [draft, setDraft] = useState({
     title: "",
     content: "",
@@ -47,8 +49,10 @@ export default function AdminEventsPage() {
     discountType: "AMOUNT",
     discountValue: "10000",
     status: "DRAFT",
+    coupons: [],
   });
   const visibleRows = rows.filter((row) => row.entityType === section);
+  const couponRows = rows.filter((row) => row.entityType === "COUPON");
   const selectedEvent = visibleRows.find((row) => row.id === selectedEventId) ?? visibleRows[0] ?? null;
 
   useEffect(() => {
@@ -70,6 +74,7 @@ export default function AdminEventsPage() {
             discountType: nextRows[0].discountType ?? "AMOUNT",
             discountValue: String(nextRows[0].discountValue ?? 10000),
             status: nextRows[0].status ?? "DRAFT",
+            coupons: [],
           });
           setMode("edit");
         }
@@ -105,9 +110,20 @@ export default function AdminEventsPage() {
     }
   }, [section, rows]);
 
-  const syncDraft = (eventId, sourceRows = rows) => {
+  const syncDraft = async (eventId, sourceRows = rows) => {
     const target = sourceRows.find((row) => row.id === eventId);
     if (!target) return;
+    let nextCoupons = [];
+    if (target.entityType === "EVENT") {
+      try {
+        const detail = await getAdminEventDetail(target.entityNo);
+        nextCoupons = (detail.couponNames ?? [])
+          .map((couponName) => sourceRows.find((row) => row.entityType === "COUPON" && row.title === couponName)?.entityNo)
+          .filter((couponNo) => couponNo != null);
+      } catch (error) {
+        console.error("Failed to load admin event detail.", error);
+      }
+    }
     setDraft({
       title: target.title,
       content: target.content ?? "",
@@ -116,8 +132,10 @@ export default function AdminEventsPage() {
       discountType: target.discountType ?? "AMOUNT",
       discountValue: String(target.discountValue ?? 10000),
       status: target.status ?? "DRAFT",
+      coupons: nextCoupons,
     });
     setUploadFile(null);
+    setSelectedCouponNo("");
     setMode("edit");
   };
 
@@ -133,7 +151,26 @@ export default function AdminEventsPage() {
       discountType: "AMOUNT",
       discountValue: "10000",
       status: section === "EVENT" ? "DRAFT" : "INACTIVE",
+      coupons: [],
     });
+    setSelectedCouponNo("");
+  };
+
+  const handleCouponAdd = () => {
+    const couponNo = Number(selectedCouponNo);
+    if (!couponNo) return;
+    setDraft((current) => ({
+      ...current,
+      coupons: current.coupons.includes(couponNo) ? current.coupons : [...current.coupons, couponNo],
+    }));
+    setSelectedCouponNo("");
+  };
+
+  const handleCouponRemove = (couponNo) => {
+    setDraft((current) => ({
+      ...current,
+      coupons: current.coupons.filter((item) => item !== couponNo),
+    }));
   };
 
   const updateStatus = async (nextStatus) => {
@@ -281,7 +318,38 @@ export default function AdminEventsPage() {
             ) : (
               <label className="saas-field">
                 <span>대상</span>
-                <input value={selectedEvent?.target ?? "전체 회원"} readOnly />
+                <div className="admin-event-coupon-picker">
+                  <select value={selectedCouponNo} onChange={(event) => setSelectedCouponNo(event.target.value)}>
+                    <option value="">쿠폰을 선택하세요</option>
+                    {couponRows.map((coupon) => (
+                      <option key={coupon.id} value={coupon.entityNo}>
+                        {coupon.title}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" className="saas-btn-ghost" onClick={handleCouponAdd} disabled={!selectedCouponNo}>
+                    추가
+                  </button>
+                </div>
+                <div className="admin-event-coupon-list">
+                  {draft.coupons.length ? (
+                    draft.coupons.map((couponNo) => {
+                      const coupon = couponRows.find((item) => Number(item.entityNo) === Number(couponNo));
+                      return (
+                        <button
+                          key={couponNo}
+                          type="button"
+                          className="admin-event-coupon-chip"
+                          onClick={() => handleCouponRemove(couponNo)}
+                        >
+                          {coupon?.title ?? `쿠폰 ${couponNo}`} ×
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <span className="admin-event-coupon-empty">선택된 쿠폰이 없습니다.</span>
+                  )}
+                </div>
               </label>
             )}
             <label className="saas-field">

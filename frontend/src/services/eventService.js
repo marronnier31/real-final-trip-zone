@@ -1,4 +1,5 @@
-import { get, getApiBaseUrl } from "../lib/appClient";
+import { get, getApiBaseUrl, post } from "../lib/appClient";
+import { invalidateMyPageCaches } from "./mypageService";
 
 const EVENT_PROMO_ACCENTS = ["sunset", "peach", "mint", "dusk"];
 const EVENT_FALLBACK_IMAGES = [
@@ -49,9 +50,56 @@ function mapEventDto(dto, index = 0) {
   };
 }
 
+function mapCouponDownloadTarget(dto) {
+  return {
+    couponNo: dto.couponNo,
+    couponName: dto.couponName,
+  };
+}
+
 export async function fetchLiveEvents() {
   const response = await get("/api/event/list?page=1&size=20");
   return (response.dtoList ?? [])
     .filter((dto) => dto.status === "ONGOING")
     .map((dto, index) => mapEventDto(dto, index));
+}
+
+export async function fetchEventDetail(eventNo) {
+  const response = await get(`/api/event/${eventNo}`);
+  return mapEventDto(response);
+}
+
+export async function downloadEventCoupons(eventNo) {
+  const [eventDetail, couponRows] = await Promise.all([
+    fetchEventDetail(eventNo),
+    get("/api/coupon/list"),
+  ]);
+
+  const targets = (eventDetail.couponNames ?? [])
+    .map((couponName) => couponRows.find((coupon) => coupon.couponName === couponName))
+    .filter(Boolean)
+    .map(mapCouponDownloadTarget);
+
+  if (!targets.length) {
+    return { downloadedCount: 0, totalCount: 0 };
+  }
+
+  const results = await Promise.allSettled(
+    targets.map((coupon) =>
+      post("/api/usercoupon", {
+        couponNo: coupon.couponNo,
+        issuedAt: new Date().toISOString(),
+      }),
+    ),
+  );
+
+  const downloadedCount = results.filter((result) => result.status === "fulfilled").length;
+  if (downloadedCount > 0) {
+    invalidateMyPageCaches();
+  }
+
+  return {
+    downloadedCount,
+    totalCount: targets.length,
+  };
 }

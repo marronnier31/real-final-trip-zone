@@ -65,13 +65,13 @@ export function filterBookingRows(rows, tab) {
 }
 
 export function getCouponSummary(rows, filter) {
-  const availableCount = rows.filter((item) => item.status === "사용 가능").length;
-  const expiringCount = rows.filter((item) => item.status === "만료 예정").length;
-  const usedCount = rows.filter((item) => item.status === "사용 완료").length;
+  const availableCount = rows.filter((item) => item.isUsable).length;
+  const expiringCount = rows.filter((item) => !item.isUsable && item.status !== "USED").length;
+  const usedCount = rows.filter((item) => item.status === "USED").length;
   const filteredCoupons = rows.filter((item) => {
-    if (filter === "available") return item.status === "사용 가능";
-    if (filter === "used") return item.status === "사용 완료";
-    if (filter === "expiring") return item.status === "만료 예정";
+    if (filter === "available") return item.isUsable;
+    if (filter === "used") return item.status === "USED";
+    if (filter === "expiring") return !item.isUsable && item.status !== "USED";
     return false;
   });
 
@@ -79,19 +79,19 @@ export function getCouponSummary(rows, filter) {
 }
 
 export function getCouponAmount(item) {
-  return item.name.match(/(\d[\d,]*%?원?)/)?.[1] ?? "혜택 확인";
+  return item.name.match(/(\d[\d,]*(?:%|원))/)?.[1] ?? "혜택 확인";
 }
 
 export function getCouponToneClass(item) {
-  if (item.status === "사용 가능") return "is-available";
-  if (item.status === "사용 완료") return "is-used";
+  if (item.isUsable) return "is-available";
+  if (item.status === "USED") return "is-used";
   return "is-expiring";
 }
 
 export function getCouponVisualClass(item) {
   if (item.target.includes("제주")) return "is-jeju";
-  if (item.target.includes("서울")) return "is-city";
-  if (item.target.includes("전")) return "is-pass";
+  if (item.target.includes("도심")) return "is-city";
+  if (item.target.includes("첫")) return "is-pass";
   return "is-stay";
 }
 
@@ -100,8 +100,7 @@ export function getMileageSummary(rows, filter) {
   const currentMonthPrefix = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const parseSignedAmount = (value) => {
-    const normalized = String(value ?? "")
-      .replace(/[^0-9+-]/g, "");
+    const normalized = String(value ?? "").replace(/[^0-9+-]/g, "");
     const numeric = Number(normalized);
     return Number.isFinite(numeric) ? numeric : 0;
   };
@@ -112,7 +111,8 @@ export function getMileageSummary(rows, filter) {
     .filter((item) => item.type === "적립" && isCurrentMonth(item))
     .reduce((sum, item) => sum + Math.abs(parseSignedAmount(item.amount)), 0);
   const usedThisMonth = rows
-    .filter((item) => (item.type === "사용" || item.type === "사용 복구") && isCurrentMonth(item))
+    .filter((item) => item.type === "사용" || item.type === "사용 복구")
+    .filter(isCurrentMonth)
     .reduce((sum, item) => {
       const amount = Math.abs(parseSignedAmount(item.amount));
       return item.type === "사용 복구" ? sum - amount : sum + amount;

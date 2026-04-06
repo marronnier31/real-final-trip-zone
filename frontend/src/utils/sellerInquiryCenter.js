@@ -23,12 +23,13 @@ function formatDateTime(dateValue) {
 function normalizeSender(dto) {
   const senderType = String(dto.senderType ?? "").toUpperCase();
   const senderNo = Number(dto.senderNo);
+  const senderName = String(dto.senderName ?? "").trim();
   const session = readAuthSession();
   const currentUserNo = Number(session?.userNo);
   const currentRoles = session?.roleNames ?? [];
 
   if (senderType === "USER" || senderType === "GUEST" || senderType === "MEMBER") {
-    return { sender: "회원", senderType: "USER" };
+    return { sender: senderName || "회원", senderType: "USER" };
   }
 
   if (senderType === "HOST" || senderType === "SELLER" || senderType === "OPERATOR" || senderType === "ADMIN") {
@@ -40,10 +41,10 @@ function normalizeSender(dto) {
       return { sender: "판매자", senderType: "HOST" };
     }
 
-    return { sender: "회원", senderType: "USER" };
+    return { sender: senderName || "회원", senderType: "USER" };
   }
 
-  return { sender: "회원", senderType: "USER" };
+  return { sender: senderName || "회원", senderType: "USER" };
 }
 
 export function mapSellerInquiryMessage(dto) {

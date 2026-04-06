@@ -99,6 +99,7 @@ export function ReviewSection({
   onChangeDraft,
   onSubmit,
   onImageChange,
+  onImageRemove,
   onEdit,
   onDelete,
 }) {
@@ -133,7 +134,16 @@ export function ReviewSection({
           {reviewDraft.images.length ? (
             <div className="detail-review-upload-preview">
               {reviewDraft.images.map((image) => (
-                <div key={image.fileName} className="detail-review-upload-thumb" style={{ backgroundImage: `url(${image.previewUrl})` }} />
+                <div key={image.fileName} className="detail-review-upload-thumb" style={{ backgroundImage: `url(${image.previewUrl})` }}>
+                  <button
+                    type="button"
+                    className="detail-review-upload-remove"
+                    onClick={() => onImageRemove(image.fileName)}
+                    aria-label="사진 삭제"
+                  >
+                    x
+                  </button>
+                </div>
               ))}
             </div>
           ) : null}

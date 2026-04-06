@@ -105,6 +105,7 @@ function mapEventDto(dto) {
       status === "HIDDEN" ? "숨김" :
       status === "ENDED" ? "종료" : "초안",
     target: dto.couponNames?.length ? dto.couponNames.join(", ") : "전체 회원",
+    couponNames: dto.couponNames ?? [],
     period: formatDateRange(dto.startDate, dto.endDate),
     content: dto.content ?? "",
     startDate: dto.startDate ?? "",
@@ -182,6 +183,7 @@ function mapReservationDto(dto) {
     status: dto.status ?? "PENDING",
     amount: formatMoney(dto.totalPrice),
     detail: `${lodgingName} · ${roomName}`,
+    requestMessage: dto.requestMessage ?? "",
   };
 }
 
@@ -374,6 +376,11 @@ export async function getAdminEvents() {
   ];
 }
 
+export async function getAdminEventDetail(eventNo) {
+  const response = await get(`/api/event/${eventNo}`);
+  return mapEventDto(response);
+}
+
 export async function createAdminEvent(draft, imageFile) {
   const session = readAuthSession();
   const formData = new FormData();
@@ -383,6 +390,9 @@ export async function createAdminEvent(draft, imageFile) {
   formData.append("startDate", draft.startDate);
   formData.append("endDate", draft.endDate);
   formData.append("status", draft.status ?? "DRAFT");
+  (draft.coupons ?? []).forEach((couponNo) => {
+    formData.append("coupons", String(couponNo));
+  });
   if (imageFile) {
     formData.append("file", imageFile);
   }
@@ -437,6 +447,9 @@ export async function updateAdminEventStatus(currentEvent, nextStatus) {
   formData.append("startDate", currentEvent.startDate);
   formData.append("endDate", currentEvent.endDate);
   formData.append("status", nextStatus);
+  (currentEvent.couponNos ?? []).forEach((couponNo) => {
+    formData.append("coupons", String(couponNo));
+  });
   if (currentEvent.thumbnailUrl) {
     formData.append("thumbnailUrl", currentEvent.thumbnailUrl);
   }
@@ -468,6 +481,9 @@ export async function saveAdminEvent(eventId, draft, currentEvent, imageFile = n
   formData.append("startDate", draft.startDate);
   formData.append("endDate", draft.endDate);
   formData.append("status", currentEvent.status ?? "DRAFT");
+  (draft.coupons ?? []).forEach((couponNo) => {
+    formData.append("coupons", String(couponNo));
+  });
   if (currentEvent.thumbnailUrl) {
     formData.append("thumbnailUrl", currentEvent.thumbnailUrl);
   }

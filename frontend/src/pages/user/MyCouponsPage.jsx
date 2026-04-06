@@ -67,13 +67,13 @@ export default function MyCouponsPage() {
         {isLoading ? (
           <div className="my-empty-panel">
             <strong>쿠폰함을 불러오는 중입니다.</strong>
-            <p>보유 쿠폰과 만료 상태를 동기화하고 있습니다.</p>
+            <p>보유 쿠폰과 만료 상태를 함께 확인하고 있습니다.</p>
           </div>
         ) : null}
         <div className="mypage-header-row">
           <div className="mypage-header-copy">
             <strong>쿠폰 {coupons.length}장</strong>
-            <p>7일 이내 소멸예정 쿠폰 {expiringCount}장</p>
+            <p>7일 이내 만료 예정 쿠폰 {expiringCount}장</p>
           </div>
           <span className="my-stat-pill is-soft">보유 쿠폰 관리</span>
         </div>
@@ -93,52 +93,42 @@ export default function MyCouponsPage() {
         {filteredCoupons.length ? (
           <div className="coupon-vault">
             {filteredCoupons.map((item) => (
-            <article key={item.id} className={`coupon-vault-item ${getCouponToneClass(item)}`}>
-              <div
-                className={`coupon-vault-thumb ${getCouponVisualClass(item)}`}
-                aria-hidden="true"
-              >
-                <span className="coupon-vault-stamp">TRIP</span>
-              </div>
-              <div className="coupon-vault-copy">
+              <article key={item.id} className={`coupon-vault-item ${getCouponToneClass(item)}`}>
+                <div className={`coupon-vault-thumb ${getCouponVisualClass(item)}`} aria-hidden="true">
+                  <span className="coupon-vault-stamp">TRIP</span>
+                </div>
+                <div className="coupon-vault-copy">
                   <div className="payment-row-topline">
                     <span className="coupon-vault-target">{item.target}</span>
-                    <span className={`table-code${
-                      item.status === "사용 가능"
-                        ? " code-available"
-                        : item.status === "사용 완료"
-                          ? " code-closed"
-                          : " code-pending"
-                    }`}
-                    >
-                      {item.status}
+                    <span className={`table-code${item.status === "ACTIVE" ? " code-available" : item.status === "USED" ? " code-closed" : " code-pending"}`}>
+                      {item.statusLabel}
                     </span>
                   </div>
-                <strong>{item.name}</strong>
-                <p>{item.issuedAt} 발급 · {item.expire}</p>
-              </div>
-              <div className="coupon-vault-side">
-                <strong className="coupon-vault-amount">{getCouponAmount(item)}</strong>
-                {item.status === "사용 가능" ? (
-                  <Link className="coupon-action-button" to="/lodgings">사용하기</Link>
-                ) : (
-                  <span className="coupon-vault-hint">{item.status === "사용 완료" ? "사용 완료 쿠폰" : "곧 만료되는 쿠폰"}</span>
-                )}
-                <button
-                  type="button"
-                  className="coupon-action-button is-secondary"
-                  onClick={() => handleDeleteCoupon(item)}
-                  disabled={deletingCouponId === item.userCouponId}
-                >
-                  {deletingCouponId === item.userCouponId ? "정리 중" : "쿠폰 정리"}
-                </button>
-              </div>
-            </article>
+                  <strong>{item.name}</strong>
+                  <p>{item.issuedAt} 발급 · {item.expire}</p>
+                </div>
+                <div className="coupon-vault-side">
+                  <strong className="coupon-vault-amount">{getCouponAmount(item)}</strong>
+                  {item.status === "ACTIVE" ? (
+                    <Link className="coupon-action-button" to="/lodgings">사용하기</Link>
+                  ) : (
+                    <span className="coupon-vault-hint">{item.status === "USED" ? "사용 완료 쿠폰" : "곧 만료되는 쿠폰"}</span>
+                  )}
+                  <button
+                    type="button"
+                    className="coupon-action-button is-secondary"
+                    onClick={() => handleDeleteCoupon(item)}
+                    disabled={deletingCouponId === item.userCouponId}
+                  >
+                    {deletingCouponId === item.userCouponId ? "정리 중" : "쿠폰 정리"}
+                  </button>
+                </div>
+              </article>
             ))}
           </div>
         ) : !isLoading ? (
           <div className="my-empty-inline">
-            {filter === "available" ? "사용 가능한 보유 쿠폰이 없어요" : filter === "used" ? "사용 완료 쿠폰이 없어요" : "만료 예정 쿠폰이 없어요"}
+            {filter === "available" ? "사용 가능한 보유 쿠폰이 없습니다." : filter === "used" ? "사용 완료 쿠폰이 없습니다." : "만료 예정 쿠폰이 없습니다."}
           </div>
         ) : null}
       </section>

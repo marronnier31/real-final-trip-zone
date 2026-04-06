@@ -85,6 +85,17 @@ export default function SellerReservationsPage() {
     }
   }, [currentPage, rows, selectedNo]);
 
+  const moveToPage = (nextPage) => {
+    const safePage = Math.min(Math.max(1, nextPage), totalPages);
+    const startIndex = (safePage - 1) * PAGE_SIZE;
+    const nextRow = rows[startIndex] ?? null;
+
+    setCurrentPage(safePage);
+    if (nextRow) {
+      setSelectedNo(nextRow.no);
+    }
+  };
+
   const updateStatus = async (nextStatus) => {
     if (!selected) return;
     try {
@@ -113,7 +124,7 @@ export default function SellerReservationsPage() {
             <button
               type="button"
               className="seller-pagination-arrow"
-              onClick={() => setCurrentPage(Math.max(1, currentGroup * PAGE_GROUP_SIZE))}
+              onClick={() => moveToPage(Math.max(1, currentGroup * PAGE_GROUP_SIZE))}
               disabled={currentGroup === 0}
             >
               ←
@@ -124,7 +135,7 @@ export default function SellerReservationsPage() {
                   key={pageNumber}
                   type="button"
                   className={`seller-pagination-page${pageNumber === currentPage ? " is-active" : ""}`}
-                  onClick={() => setCurrentPage(pageNumber)}
+                  onClick={() => moveToPage(pageNumber)}
                 >
                   {pageNumber}
                 </button>
@@ -133,7 +144,7 @@ export default function SellerReservationsPage() {
             <button
               type="button"
               className="seller-pagination-arrow"
-              onClick={() => setCurrentPage(Math.min(totalPages, (currentGroup + 1) * PAGE_GROUP_SIZE + 1))}
+              onClick={() => moveToPage(Math.min(totalPages, (currentGroup + 1) * PAGE_GROUP_SIZE + 1))}
               disabled={pageNumbers[pageNumbers.length - 1] >= totalPages}
             >
               →
@@ -176,6 +187,10 @@ export default function SellerReservationsPage() {
             <label className="saas-field">
               <span>결제금액</span>
               <input value={selected?.amount ?? ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>요청 메시지</span>
+              <textarea rows={4} value={selected?.requestMessage?.trim() ? selected.requestMessage : "없음"} readOnly />
             </label>
             <label className="saas-field">
               <span>상세 정보</span>
