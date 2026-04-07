@@ -176,6 +176,17 @@ function mapCouponDto(dto) {
 }
 
 function mapInquiryDto(dto, comments = []) {
+  const orderedComments = [...comments].sort((left, right) => {
+    const leftTime = new Date(left.regDate ?? 0).getTime();
+    const rightTime = new Date(right.regDate ?? 0).getTime();
+
+    if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+      return leftTime - rightTime;
+    }
+
+    return Number(left.commentNo ?? 0) - Number(right.commentNo ?? 0);
+  });
+
   return {
     id: dto.inquiryNo,
     title: dto.title ?? `문의 ${dto.inquiryNo}`,
@@ -191,7 +202,7 @@ function mapInquiryDto(dto, comments = []) {
         time: formatDateLabel(dto.regDate),
         body: dto.content ?? "",
       },
-      ...comments.map((comment) => ({
+      ...orderedComments.map((comment) => ({
         id: `comment-${comment.commentNo}`,
         sender: "운영팀",
         time: "답변 도착",
@@ -438,7 +449,7 @@ export async function createAdminCoupon(payload) {
   const response = await post("/api/coupon", {
     adminUser: Number(session?.userNo ?? 1),
     couponName: payload.title,
-    discountType: "PERCENT",
+    discountType: payload.discountType ?? "AMOUNT",
     discountValue: Number(payload.discountValue),
     startDate: payload.startDate,
     endDate: payload.endDate,
@@ -488,7 +499,7 @@ export async function saveAdminEvent(eventId, draft, currentEvent, imageFile = n
     await patch(`/api/coupon/${currentEvent.entityNo}`, {
       adminUser: currentEvent.adminUser,
       couponName: draft.title,
-      discountType: "PERCENT",
+      discountType: draft.discountType ?? currentEvent.discountType ?? "AMOUNT",
       discountValue: Number(draft.discountValue),
       startDate: draft.startDate,
       endDate: draft.endDate,

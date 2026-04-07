@@ -4,256 +4,1462 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TripZone Presentation</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2364e3da'/%3E%3Cstop offset='1' stop-color='%237d87ff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='48' height='48' rx='14' fill='url(%23g)'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="../assets/site.css" />
-    <link rel="stylesheet" href="../assets/presentation.css" />
+    <style>
+      :root {
+        --bg: #f6f2e8;
+        --bg-soft: #fffdf8;
+        --panel: rgba(255, 252, 245, 0.9);
+        --panel-strong: rgba(250, 246, 238, 0.98);
+        --line: rgba(32, 52, 63, 0.1);
+        --text: #13222b;
+        --muted: rgba(19, 34, 43, 0.66);
+        --teal: #1f8d87;
+        --cyan: #80b7b1;
+        --violet: #d88a68;
+        --accent: linear-gradient(135deg, #1f8d87 0%, #74b9ad 52%, #d88a68 100%);
+        --danger: #d86f62;
+        --shadow: 0 30px 80px rgba(51, 58, 65, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(31, 141, 135, 0.12), transparent 28%),
+          radial-gradient(circle at top right, rgba(216, 138, 104, 0.1), transparent 26%),
+          linear-gradient(180deg, #f8f4ea 0%, #f4efe5 46%, #efe9de 100%);
+        color: var(--text);
+        font-family: "Manrope", "Noto Sans KR", sans-serif;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      .deck-shell {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        padding: 24px;
+      }
+
+      .deck-shell::before,
+      .deck-shell::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(60px);
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .deck-shell::before {
+        width: 320px;
+        height: 320px;
+        top: -40px;
+        right: 8%;
+        background: rgba(31, 141, 135, 0.14);
+      }
+
+      .deck-shell::after {
+        width: 260px;
+        height: 260px;
+        bottom: -40px;
+        left: 10%;
+        background: rgba(216, 138, 104, 0.12);
+      }
+
+      .deck-frame {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        width: 100%;
+        height: 100%;
+        border: 1px solid rgba(26, 49, 61, 0.08);
+        border-radius: 32px;
+        background: rgba(255, 253, 247, 0.82);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        backdrop-filter: blur(18px);
+      }
+
+      .deck-frame::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(135deg, rgba(31, 141, 135, 0.04), transparent 30%),
+          linear-gradient(315deg, rgba(216, 138, 104, 0.04), transparent 28%);
+        pointer-events: none;
+      }
+
+      .topbar {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 24px;
+        padding: 22px 28px 18px;
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 252, 245, 0.74);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .brand-badge {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: var(--accent);
+        box-shadow: 0 14px 28px rgba(31, 141, 135, 0.16);
+      }
+
+      .brand-copy strong {
+        display: block;
+        font-size: 1rem;
+        letter-spacing: 0.02em;
+      }
+
+      .brand-copy span {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .progress-track {
+        position: relative;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(19, 34, 43, 0.08);
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        width: 10%;
+        height: 100%;
+        border-radius: 999px;
+        background: var(--accent);
+        transition: width 260ms ease;
+      }
+
+      .top-meta {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .top-index {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(19, 34, 43, 0.06);
+        font-weight: 800;
+      }
+
+      .top-title {
+        max-width: 220px;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.4;
+      }
+
+      .slides {
+        position: relative;
+        overflow: hidden;
+        min-height: 0;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        align-items: stretch;
+        padding: 28px 28px 20px;
+        opacity: 0;
+        transform: translateX(48px) scale(0.985);
+        transition:
+          opacity 320ms ease,
+          transform 420ms ease;
+        pointer-events: none;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+
+      .slide.active {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        pointer-events: auto;
+      }
+
+      .slide-grid {
+        display: grid;
+        gap: 22px;
+        min-height: 100%;
+      }
+
+      .hero-layout {
+        grid-template-columns: 1.35fr 0.85fr;
+      }
+
+      .two-col {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .deep-dive {
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+
+      .panel,
+      .metric-card,
+      .proof-card,
+      .story-card,
+      .mini-card {
+        position: relative;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: var(--panel);
+        overflow: hidden;
+        box-shadow: 0 16px 40px rgba(45, 54, 61, 0.06);
+      }
+
+      .panel::before,
+      .metric-card::before,
+      .proof-card::before,
+      .story-card::before,
+      .mini-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 28%);
+        pointer-events: none;
+      }
+
+      .hero-main,
+      .panel-body {
+        padding: 28px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 18px;
+        color: var(--teal);
+        font-size: 0.84rem;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: currentColor;
+        box-shadow: 0 0 0 6px rgba(31, 141, 135, 0.12);
+      }
+
+      .slide h1,
+      .slide h2,
+      .slide h3,
+      .slide p {
+        margin: 0;
+      }
+
+      .mega-title {
+        max-width: 760px;
+        font-size: clamp(2.3rem, 3.35vw, 4rem);
+        line-height: 1.06;
+        letter-spacing: -0.05em;
+      }
+
+      .section-title {
+        font-size: clamp(2rem, 2.6vw, 3rem);
+        line-height: 1.08;
+        letter-spacing: -0.04em;
+      }
+
+      .lead {
+        margin-top: 14px;
+        max-width: 720px;
+        color: var(--muted);
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .chip-row,
+      .stat-row,
+      .meta-row,
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .chip,
+      .tag,
+      .nav-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(19, 34, 43, 0.06);
+        color: var(--text);
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      .chip.strong {
+        background: rgba(31, 141, 135, 0.12);
+        color: #1f6f6a;
+      }
+
+      .hero-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 22px;
+      }
+
+      .metric-card {
+        padding: 18px 20px;
+      }
+
+      .metric-card strong {
+        display: block;
+        font-size: 1.95rem;
+        letter-spacing: -0.05em;
+      }
+
+      .metric-card span,
+      .metric-card p {
+        color: var(--muted);
+      }
+
+      .metric-card p {
+        margin-top: 6px;
+        font-size: 0.88rem;
+        line-height: 1.55;
+      }
+
+      .hero-side {
+        display: grid;
+        gap: 16px;
+      }
+
+      .spotlight {
+        padding: 24px;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top right, rgba(31, 141, 135, 0.14), transparent 34%),
+          linear-gradient(180deg, rgba(244, 239, 229, 0.92), rgba(239, 233, 222, 0.94));
+      }
+
+      .spotlight h3 {
+        margin-top: 18px;
+        font-size: 1.45rem;
+        line-height: 1.3;
+      }
+
+      .spotlight .big-number {
+        margin-top: 18px;
+        font-size: 4.6rem;
+        line-height: 1;
+        letter-spacing: -0.08em;
+        font-weight: 800;
+      }
+
+      .spotlight .big-caption {
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 1rem;
+      }
+
+      .highlight-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      .highlight-item {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.42);
+      }
+
+      .highlight-item strong {
+        font-size: 0.96rem;
+      }
+
+      .highlight-item span {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .kicker {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(19, 34, 43, 0.06);
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .grid-3,
+      .grid-4,
+      .proof-grid,
+      .impact-grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .grid-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .proof-grid,
+      .impact-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .story-card,
+      .proof-card,
+      .mini-card {
+        padding: 22px;
+      }
+
+      .story-card h3,
+      .proof-card h3,
+      .mini-card h3 {
+        font-size: 1.35rem;
+        line-height: 1.25;
+      }
+
+      .story-card p,
+      .proof-card p,
+      .mini-card p {
+        margin-top: 12px;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .number {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        background: rgba(31, 141, 135, 0.12);
+        color: #1f6f6a;
+        font-size: 1rem;
+        font-weight: 800;
+      }
+
+      .journey {
+        display: grid;
+        gap: 14px;
+        margin-top: 20px;
+      }
+
+      .journey-step {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 14px;
+        padding: 16px 18px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.36);
+        border: 1px solid rgba(19, 34, 43, 0.08);
+      }
+
+      .journey-step strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 1rem;
+      }
+
+      .journey-step span {
+        color: var(--muted);
+        line-height: 1.55;
+        font-size: 0.94rem;
+      }
+
+      .compare-band {
+        display: grid;
+        gap: 14px;
+      }
+
+      .compare-row {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 14px;
+        align-items: center;
+        padding: 18px 20px;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.44);
+        border: 1px solid rgba(19, 34, 43, 0.08);
+      }
+
+      .compare-row strong {
+        font-size: 1.05rem;
+      }
+
+      .compare-row span {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .score {
+        justify-self: end;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(31, 141, 135, 0.12);
+        color: #1f6f6a;
+        font-weight: 800;
+      }
+
+      .visual-stack {
+        display: grid;
+        grid-template-rows: 1fr auto;
+        gap: 16px;
+      }
+
+      .screen-mock {
+        position: relative;
+        padding: 20px;
+        min-height: 100%;
+        border-radius: 28px;
+        border: 1px solid rgba(19, 34, 43, 0.08);
+        background:
+          linear-gradient(180deg, rgba(255, 252, 245, 0.98), rgba(248, 243, 234, 0.98)),
+          linear-gradient(135deg, rgba(31, 141, 135, 0.08), transparent 40%);
+      }
+
+      .mock-topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(19, 34, 43, 0.08);
+      }
+
+      .mock-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .mock-logo::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .mock-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 0.7fr;
+        gap: 14px;
+        margin-top: 18px;
+      }
+
+      .mock-hero,
+      .mock-side,
+      .mock-line,
+      .mock-card {
+        border-radius: 22px;
+        background: rgba(19, 34, 43, 0.06);
+      }
+
+      .mock-hero {
+        min-height: 220px;
+        padding: 22px;
+        background:
+          radial-gradient(circle at top right, rgba(31, 141, 135, 0.14), transparent 36%),
+          rgba(19, 34, 43, 0.04);
+      }
+
+      .mock-hero .mock-title {
+        width: 72%;
+        height: 18px;
+        border-radius: 999px;
+        background: rgba(19, 34, 43, 0.88);
+      }
+
+      .mock-hero .mock-text {
+        width: 48%;
+        height: 12px;
+        margin-top: 12px;
+        border-radius: 999px;
+        background: rgba(19, 34, 43, 0.2);
+      }
+
+      .mock-pills {
+        display: flex;
+        gap: 10px;
+        margin-top: 24px;
+      }
+
+      .mock-pill {
+        width: 86px;
+        height: 34px;
+        border-radius: 999px;
+        background: rgba(31, 141, 135, 0.16);
+      }
+
+      .mock-side {
+        min-height: 220px;
+        padding: 18px;
+      }
+
+      .mock-side .mock-line {
+        height: 14px;
+        margin-bottom: 12px;
+      }
+
+      .mock-side .mock-line:nth-child(2) {
+        width: 84%;
+      }
+
+      .mock-side .mock-line:nth-child(3) {
+        width: 62%;
+      }
+
+      .mock-band {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .mock-card {
+        min-height: 90px;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .legend span {
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(19, 34, 43, 0.06);
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .quote {
+        margin-top: 16px;
+        padding: 18px 20px;
+        border-left: 3px solid rgba(31, 141, 135, 0.48);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.44);
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .emphasis {
+        color: #1f6f6a;
+        font-weight: 800;
+      }
+
+      .impact-card strong {
+        display: block;
+        font-size: 3rem;
+        letter-spacing: -0.06em;
+      }
+
+      .impact-card span {
+        display: block;
+        margin-top: 10px;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .closing-layout {
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+
+      .cta-card {
+        padding: 32px;
+        background:
+          radial-gradient(circle at top right, rgba(31, 141, 135, 0.16), transparent 34%),
+          linear-gradient(135deg, rgba(248, 243, 234, 0.98), rgba(242, 236, 225, 0.96));
+      }
+
+      .cta-card .big-action {
+        margin-top: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 240px;
+        padding: 18px 24px;
+        border-radius: 20px;
+        background: var(--accent);
+        color: #fffdf9;
+        font-size: 1rem;
+        font-weight: 800;
+      }
+
+      .footer-nav {
+        position: relative;
+        z-index: 2;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 20px;
+        padding: 12px 22px 16px;
+        border-top: 1px solid var(--line);
+        background: rgba(252, 248, 241, 0.92);
+        backdrop-filter: blur(12px);
+      }
+
+      .nav-help {
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .slide-indicators {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      .indicator {
+        width: 32px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(19, 34, 43, 0.12);
+        transition:
+          transform 220ms ease,
+          background 220ms ease,
+          width 220ms ease;
+      }
+
+      .indicator.active {
+        width: 58px;
+        background: var(--accent);
+      }
+
+      .nav-buttons {
+        display: flex;
+        gap: 10px;
+      }
+
+      .nav-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(19, 34, 43, 0.12);
+        border-radius: 14px;
+        background: rgba(19, 34, 43, 0.04);
+        color: var(--text);
+        cursor: pointer;
+        transition:
+          background 220ms ease,
+          transform 220ms ease,
+          border-color 220ms ease;
+      }
+
+      .nav-button:hover {
+        background: rgba(19, 34, 43, 0.08);
+        transform: translateY(-1px);
+        border-color: rgba(19, 34, 43, 0.24);
+      }
+
+      .fade-up {
+        opacity: 0;
+        transform: translateY(22px);
+        animation: fadeUp 700ms ease forwards;
+      }
+
+      .delay-1 {
+        animation-delay: 80ms;
+      }
+
+      .delay-2 {
+        animation-delay: 160ms;
+      }
+
+      .delay-3 {
+        animation-delay: 240ms;
+      }
+
+      @keyframes fadeUp {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 1180px) {
+        .deck-shell {
+          padding: 16px;
+        }
+
+        .hero-layout,
+        .two-col,
+        .deep-dive,
+        .closing-layout,
+        .proof-grid,
+        .impact-grid,
+        .grid-3,
+        .grid-4 {
+          grid-template-columns: 1fr;
+        }
+
+        .slide {
+          overflow-y: auto;
+        }
+
+        .mock-grid,
+        .mock-band {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
   </head>
-  <body class="presentation-body">
-    <div class="presentation-shell">
-      <header class="presentation-header">
-        <div class="brand"><span class="brand-mark"></span><span>TripZone Presentation</span></div>
-        <div class="meta">
-          <span class="meta-index" id="metaIndex">01</span>
-          <span class="meta-title" id="metaTitle">개요</span>
-        </div>
-        <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
-      </header>
-
-      <nav class="slide-rail" aria-label="발표 네비게이션">
-        <button class="rail-dot active" data-target="intro" aria-label="intro"></button>
-        <button class="rail-dot" data-target="problem" aria-label="problem"></button>
-        <button class="rail-dot" data-target="scope" aria-label="scope"></button>
-        <button class="rail-dot" data-target="roles" aria-label="roles"></button>
-        <button class="rail-dot" data-target="structure" aria-label="structure"></button>
-        <button class="rail-dot" data-target="database" aria-label="database"></button>
-        <button class="rail-dot" data-target="inquiry" aria-label="inquiry"></button>
-        <button class="rail-dot" data-target="frontend" aria-label="frontend"></button>
-        <button class="rail-dot" data-target="submission" aria-label="submission"></button>
-        <button class="rail-dot" data-target="closing" aria-label="closing"></button>
-      </nav>
-
-      <main class="deck">
-        <section class="slide active" id="intro" data-title="개요">
-          <div class="slide-frame hero-grid">
-            <div class="reveal">
-              <p class="eyebrow">Project Overview</p>
-              <h1 class="slide-title">TripZone는 설계 문서와 구현 기준을 함께 정리한 팀 프로젝트입니다</h1>
-              <p class="slide-subtitle">
-                요구사항, 구조, DB, 문의 모델을 한 흐름으로 정리했다.
-              </p>
-              <div class="role-pill-row" style="margin-top: 18px;">
-                <span class="role-pill">com.kh.trip</span>
-                <span class="role-pill">3-role platform</span>
-                <span class="role-pill">InquiryRoom / InquiryMessage</span>
-              </div>
-            </div>
-            <div class="hero-panel-large reveal">
-              <div>
-                <p class="eyebrow" style="color: rgba(255,255,255,0.8);">Project Set</p>
-                <h3>설계 문서 세트</h3>
-              </div>
-              <div class="big-number">4 + 1</div>
-              <div class="mini-chip-row">
-                <span class="mini-chip">명세서 HTML 4종</span>
-                <span class="mini-chip">발표용 deck 1종</span>
-              </div>
+  <body>
+    <div class="deck-shell">
+      <div class="deck-frame">
+        <header class="topbar">
+          <div class="brand">
+            <div class="brand-badge"></div>
+            <div class="brand-copy">
+              <strong>TripZone</strong>
+              <span>고객 여정 · 운영 연결 · 구현 완성도</span>
             </div>
           </div>
-        </section>
-
-        <section class="slide" id="problem" data-title="문제 정의">
-          <div class="slide-frame split-grid">
-            <div class="panel reveal">
-              <p class="eyebrow">Background</p>
-              <h2 class="section-title">문서와 구현 기준을 같은 흐름으로 맞출 필요가 있었다</h2>
-              <ul>
-                <li>문서 기준 정리</li>
-                <li>상태값 표현 통일</li>
-                <li>팀 공유용 자료 구성</li>
-              </ul>
-            </div>
-            <div class="panel reveal">
-              <p class="eyebrow">Approach</p>
-              <h2 class="section-title">핵심 설계 문서와 구현 기준을 분명하게 나눠 정리했다</h2>
-              <ul>
-                <li>HTML 허브 재구성</li>
-                <li>통합 기준서, DDL, 메모 연결</li>
-                <li>프론트와 백엔드 기준 분리</li>
-              </ul>
-            </div>
+          <div class="progress-track">
+            <div class="progress-bar" id="progressBar"></div>
           </div>
-        </section>
-
-        <section class="slide" id="scope" data-title="프로젝트 범위">
-          <div class="slide-frame">
-            <div class="reveal">
-              <p class="eyebrow">Scope</p>
-              <h2 class="section-title">TripZone의 제품 범위</h2>
-              <p class="slide-subtitle">사용자, 판매자, 관리자 3개 역할 기준으로 설계했다.</p>
-            </div>
-            <div class="feature-grid reveal" style="margin-top: 20px;">
-              <article class="feature-card">
-                <h3>User</h3>
-                <p>회원가입, 로그인, 숙소 탐색, 예약, 결제, 리뷰, 찜, 문의, 혜택 사용</p>
-              </article>
-              <article class="feature-card">
-                <h3>Seller</h3>
-                <p>판매자 승인 신청, 숙소/객실 등록, 예약 처리, 문의 응답</p>
-              </article>
-              <article class="feature-card">
-                <h3>Admin</h3>
-                <p>회원/판매자 관리, 이벤트/쿠폰 관리, 문의 모니터링, 감사 로그 관리</p>
-              </article>
-            </div>
+          <div class="top-meta">
+            <div class="top-index" id="slideIndex">01</div>
+            <div class="top-title" id="slideTitle">서비스 개요</div>
           </div>
-        </section>
+        </header>
 
-        <section class="slide" id="roles" data-title="3-Role 구조">
-          <div class="slide-frame">
-            <div class="reveal">
-              <p class="eyebrow">Roles</p>
-              <h2 class="section-title">핵심 구조는 3개 역할 분리다</h2>
-            </div>
-            <div class="role-grid reveal" style="margin-top: 20px;">
-              <article class="role-card user"><h3>일반 회원</h3><p>경험 중심 사용자</p><ul><li>검색</li><li>예약</li><li>결제</li><li>리뷰</li><li>문의</li></ul></article>
-              <article class="role-card seller"><h3>판매자</h3><p>운영 중심 사용자</p><ul><li>숙소 등록</li><li>객실 관리</li><li>예약 처리</li><li>문의 응답</li></ul></article>
-              <article class="role-card admin"><h3>관리자</h3><p>통제 중심 사용자</p><ul><li>판매자 승인</li><li>이벤트/쿠폰</li><li>문의 모니터링</li><li>감사 로그</li></ul></article>
-            </div>
-          </div>
-        </section>
-
-        <section class="slide" id="structure" data-title="구조 기준">
-          <div class="slide-frame two-col-grid">
-            <div class="panel reveal">
-              <p class="eyebrow">Structure</p>
-              <h2 class="section-title">루트 패키지명과 레이어 기준을 함께 본다</h2>
-              <div class="pill-row">
-                <span class="pill">com.kh.trip.domain</span>
-                <span class="pill">com.kh.trip.dto</span>
-                <span class="pill">com.kh.trip.repository</span>
-                <span class="pill">com.kh.trip.service</span>
-                <span class="pill">com.kh.trip.controller</span>
-              </div>
-              <p style="margin-top: 16px;">패키지와 레이어 기준을 중심으로 구조를 설명한다.</p>
-            </div>
-            <div class="architecture-grid reveal">
-              <article class="arch-card">
-                <h3>주요 도메인</h3>
-                <ul>
-                  <li>User / HostProfile / MemberGrade</li>
-                  <li>Lodging / Room / Wishlist</li>
-                  <li>Booking / Payment / Review</li>
-                </ul>
+        <main class="slides">
+          <section class="slide active" data-title="서비스 개요">
+            <div class="slide-grid hero-layout">
+              <article class="panel hero-main">
+                <p class="eyebrow fade-up">TripZone</p>
+                <h1 class="mega-title fade-up delay-1">고객이 실제로 예약하고 운영자가 바로 관리하는 여행 숙박 플랫폼</h1>
+                <p class="lead fade-up delay-2">
+                  TripZone는 숙소 탐색, 예약, 결제, 리뷰, 쿠폰, 운영 관리까지 한 흐름으로 이어지는 3-role 서비스입니다.
+                </p>
+                <div class="chip-row fade-up delay-3" style="margin-top: 24px">
+                  <span class="chip strong">User</span>
+                  <span class="chip strong">Seller</span>
+                  <span class="chip strong">Admin</span>
+                  <span class="chip">Booking</span>
+                  <span class="chip">Coupon</span>
+                  <span class="chip">Dashboard</span>
+                </div>
+                <div class="hero-metrics fade-up delay-3">
+                  <div class="metric-card">
+                    <strong>3</strong>
+                    <span>핵심 역할</span>
+                    <p>고객, 판매자, 관리자 흐름을 한 서비스 안에서 구현</p>
+                  </div>
+                  <div class="metric-card">
+                    <strong>1</strong>
+                    <span>통합 여정</span>
+                    <p>탐색부터 결제, 운영 반영까지 하나의 데모 라인</p>
+                  </div>
+                  <div class="metric-card">
+                    <strong>Live</strong>
+                    <span>관리형 프로모션</span>
+                    <p>이벤트와 쿠폰이 관리자 등록 후 즉시 사용자 화면 반영</p>
+                  </div>
+                  <div class="metric-card">
+                    <strong>Verified</strong>
+                    <span>실행 검증</span>
+                    <p>예약 생성, 결제 표시, 이벤트/쿠폰 노출 흐름까지 확인</p>
+                  </div>
+                </div>
               </article>
-              <article class="arch-card">
-                <h3>문의 도메인</h3>
-                <ul>
-                  <li>InquiryRoom</li>
-                  <li>InquiryMessage</li>
-                  <li>InquiryService / InquiryController</li>
-                </ul>
+
+              <aside class="panel spotlight">
+                <span class="kicker">Connected Flow</span>
+                <h3>핵심은 각 화면이 아니라 실제 서비스 흐름이 끝까지 이어진다는 점입니다.</h3>
+                <div class="big-number">E2E</div>
+                <p class="big-caption">탐색 → 예약 → 결제 → 마이페이지 → 운영 반영</p>
+                <div class="highlight-list">
+                  <div class="highlight-item">
+                    <div class="number">01</div>
+                    <div>
+                      <strong>고객 시점</strong>
+                      <span>실사용 흐름을 기준으로 화면을 설명</span>
+                    </div>
+                  </div>
+                  <div class="highlight-item">
+                    <div class="number">02</div>
+                    <div>
+                      <strong>운영 시점</strong>
+                      <span>판매자와 관리자가 같은 데이터를 운영</span>
+                    </div>
+                  </div>
+                  <div class="highlight-item">
+                    <div class="number">03</div>
+                    <div>
+                      <strong>검증 시점</strong>
+                      <span>직접 생성한 예약과 프로모션 결과를 근거로 제시</span>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="slide" data-title="왜 중요한가">
+            <div class="slide-grid two-col">
+              <article class="panel panel-body">
+                <p class="eyebrow">Why It Matters</p>
+                <h2 class="section-title">숙소 플랫폼은 기능이 아니라 연결이 끊기면 바로 신뢰를 잃습니다.</h2>
+                <div class="journey" style="margin-top: 24px">
+                  <div class="journey-step">
+                    <div class="number">1</div>
+                    <div>
+                      <strong>예약 실패</strong>
+                      <span>날짜, 객실, 결제, 요청사항 중 하나라도 어긋나면 고객 이탈</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">2</div>
+                    <div>
+                      <strong>혜택 불일치</strong>
+                      <span>관리자가 등록한 쿠폰이 사용자 화면에 안 보이면 운영 신뢰도 하락</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">3</div>
+                    <div>
+                      <strong>운영 단절</strong>
+                      <span>판매자 예약관리, 관리자 이벤트관리, 고객 마이페이지가 서로 맞지 않으면 서비스 완성도가 무너짐</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel panel-body">
+                <p class="eyebrow">Signal</p>
+                <div class="grid-3" style="margin-top: 8px">
+                  <div class="story-card">
+                    <span class="kicker">Customer</span>
+                    <h3>예약은 됐는데 결제 정보가 안 보임</h3>
+                    <p>상세 화면에서 결제 수단이 누락되면 구매 신뢰가 즉시 깨집니다.</p>
+                  </div>
+                  <div class="story-card">
+                    <span class="kicker">Promotion</span>
+                    <h3>관리자 쿠폰이 사용자 목록에서 식별 안 됨</h3>
+                    <p>등록은 되어도 노출 방식이 다르면 운영 성과를 설명할 수 없습니다.</p>
+                  </div>
+                  <div class="story-card">
+                    <span class="kicker">Admin</span>
+                    <h3>등록 실패 안내가 틀린 위치에 표시</h3>
+                    <p>운영자가 원인을 못 보면 실제 서비스 운영도 막힙니다.</p>
+                  </div>
+                </div>
               </article>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="slide" id="database" data-title="DB 기준">
-          <div class="slide-frame">
-            <div class="reveal">
-              <p class="eyebrow">Database</p>
-              <h2 class="section-title">DB는 상태 기반 운영 모델로 보강했다</h2>
-            </div>
-            <div class="status-grid reveal" style="margin-top: 20px;">
-              <article class="status-card"><h3>회원</h3><p>ACTIVE, DORMANT, BLOCKED, DELETED</p></article>
-              <article class="status-card"><h3>판매자</h3><p>PENDING, APPROVED, REJECTED, SUSPENDED</p></article>
-              <article class="status-card"><h3>예약</h3><p>PENDING, CONFIRMED, CANCELED, COMPLETED, NO_SHOW</p></article>
-            </div>
-            <div class="stack-grid reveal" style="margin-top: 16px;">
-              <article class="timeline-card"><h3>핵심 테이블</h3><ul><li>USERS, HOST_PROFILES</li><li>LODGINGS, ROOMS</li><li>BOOKINGS, PAYMENTS</li><li>REVIEWS, WISHLISTS</li></ul></article>
-              <article class="timeline-card"><h3>운영 / 혜택 / 문의</h3><ul><li>EVENTS, COUPONS, USER_COUPONS</li><li>MILEAGE_HISTORY, AUDIT_LOGS</li><li>INQUIRY_ROOMS, INQUIRY_MESSAGES</li></ul></article>
-            </div>
-          </div>
-        </section>
+          <section class="slide" data-title="핵심 발견">
+            <div class="slide-grid two-col">
+              <article class="panel panel-body">
+                <p class="eyebrow">Key Insight</p>
+                <h2 class="section-title">핵심은 화면 수보다 동일한 데이터를 끝까지 이어주는 연결 품질이었습니다.</h2>
+                <div class="compare-band" style="margin-top: 26px">
+                  <div class="compare-row">
+                    <div>
+                      <strong>고객 화면이 좋아 보여도</strong>
+                      <span>운영 데이터와 연결되지 않으면 서비스 신뢰가 약합니다.</span>
+                    </div>
+                    <div class="score">Half</div>
+                  </div>
+                  <div class="compare-row">
+                    <div>
+                      <strong>운영 화면이 많아도</strong>
+                      <span>사용자 경험으로 이어지지 않으면 서비스성이 약합니다.</span>
+                    </div>
+                    <div class="score">Half</div>
+                  </div>
+                  <div class="compare-row">
+                    <div>
+                      <strong>같은 데이터가 고객 · 판매자 · 관리자 화면에서 일관되게 보일 때</strong>
+                      <span>구현 완성도와 서비스 완성도가 같이 올라갑니다.</span>
+                    </div>
+                    <div class="score">Full</div>
+                  </div>
+                </div>
+                <div class="quote">
+                  핵심은 “기능이 있다”가 아니라 <span class="emphasis">“등록한 데이터가 실제 사용자 여정에 반영된다”</span> 입니다.
+                </div>
+              </article>
 
-        <section class="slide" id="inquiry" data-title="문의 모델">
-          <div class="slide-frame split-grid">
-            <div class="panel reveal">
-              <p class="eyebrow">Conflict Fix</p>
-              <h2 class="section-title">문의 모델은 메시지 기반 구조로 정리했다</h2>
-              <p class="slide-subtitle">문의방과 메시지를 분리한 구조를 사용한다.</p>
+              <article class="panel panel-body">
+                <p class="eyebrow">Snapshot</p>
+                <div class="grid-4" style="margin-top: 10px">
+                  <div class="mini-card">
+                    <h3>Booking</h3>
+                    <p>요청사항 저장, 결제 수단 표시, 중복 날짜 실패 사유 노출</p>
+                  </div>
+                  <div class="mini-card">
+                    <h3>Coupon</h3>
+                    <p>관리자 등록값이 사용자 `/events`에 바로 노출</p>
+                  </div>
+                  <div class="mini-card">
+                    <h3>Admin</h3>
+                    <p>등록 실패 사유를 패널 안에 표시해 운영성 강화</p>
+                  </div>
+                  <div class="mini-card">
+                    <h3>Seller</h3>
+                    <p>예약관리 패널에서 요청메시지까지 확인 가능</p>
+                  </div>
+                </div>
+              </article>
             </div>
-            <div class="flow-list reveal">
-              <div class="flow-step"><strong>구조</strong><span>InquiryRoom = 문의방</span></div>
-              <div class="flow-step"><strong>메시지</strong><span>InquiryMessage = 대화 단위</span></div>
-              <div class="flow-step"><strong>확장</strong><span>읽음 처리 · 상태 관리</span></div>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="slide" id="frontend" data-title="프론트 우선 구현">
-          <div class="slide-frame two-col-grid">
-            <div class="panel reveal">
-              <p class="eyebrow">Frontend First</p>
-              <h2 class="section-title">이번 구현은 프론트 산출물 중심이다</h2>
-              <ul>
-                <li>명세서 HTML 4종</li>
-                <li>발표용 HTML 1종</li>
-                <li>인쇄 / PDF 대응</li>
-              </ul>
-            </div>
-            <div class="panel reveal">
-              <p class="eyebrow">Backend Minimum</p>
-              <h2 class="section-title">백엔드는 연결 기준만 정리한다</h2>
-              <ul>
-                <li>패키지와 레이어</li>
-                <li>도메인명과 상태값</li>
-                <li>문의 구조와 핵심 엔티티</li>
-                <li>실제 구현은 팀원 범위</li>
-              </ul>
-            </div>
-          </div>
-        </section>
+          <section class="slide" data-title="솔루션 구조">
+            <div class="slide-grid two-col">
+              <article class="panel panel-body">
+                <p class="eyebrow">Structure</p>
+                <h2 class="section-title">TripZone는 3-role이 같은 운영 라인을 공유하는 구조로 설계했습니다.</h2>
+                <div class="grid-3" style="margin-top: 24px">
+                  <div class="story-card">
+                    <span class="kicker">User</span>
+                    <h3>탐색 · 예약 · 결제</h3>
+                    <p>숙소 탐색 후 예약, 결제, 쿠폰 적용, 마이페이지 확인까지 연결</p>
+                  </div>
+                  <div class="story-card">
+                    <span class="kicker">Seller</span>
+                    <h3>숙소 · 예약 운영</h3>
+                    <p>판매자 대시보드에서 예약 상태, 요청사항, 판매 지표 확인</p>
+                  </div>
+                  <div class="story-card">
+                    <span class="kicker">Admin</span>
+                    <h3>이벤트 · 쿠폰 · 관리</h3>
+                    <p>관리자가 등록한 프로모션이 사용자 화면과 DB에 일관되게 반영</p>
+                  </div>
+                </div>
+              </article>
 
-        <section class="slide" id="submission" data-title="제출물 구성">
-          <div class="slide-frame">
-            <div class="reveal">
-              <p class="eyebrow">Submission</p>
-              <h2 class="section-title">최종 제출물 구성</h2>
+              <article class="panel panel-body">
+                <p class="eyebrow">Structure</p>
+                <div class="visual-stack">
+                  <div class="screen-mock">
+                    <div class="mock-topbar">
+                      <div class="mock-logo">TripZone Service Flow</div>
+                      <div class="legend">
+                        <span>User</span>
+                        <span>Seller</span>
+                        <span>Admin</span>
+                      </div>
+                    </div>
+                    <div class="mock-grid">
+                      <div class="mock-hero">
+                        <div class="mock-title"></div>
+                        <div class="mock-text"></div>
+                        <div class="mock-pills">
+                          <div class="mock-pill"></div>
+                          <div class="mock-pill"></div>
+                          <div class="mock-pill"></div>
+                        </div>
+                      </div>
+                      <div class="mock-side">
+                        <div class="mock-line"></div>
+                        <div class="mock-line"></div>
+                        <div class="mock-line"></div>
+                      </div>
+                    </div>
+                    <div class="mock-band">
+                      <div class="mock-card"></div>
+                      <div class="mock-card"></div>
+                      <div class="mock-card"></div>
+                    </div>
+                  </div>
+                  <div class="tag-row">
+                    <span class="tag">예약 데이터</span>
+                    <span class="tag">결제 데이터</span>
+                    <span class="tag">쿠폰 데이터</span>
+                    <span class="tag">운영 데이터</span>
+                  </div>
+                </div>
+              </article>
             </div>
-            <div class="stack-grid reveal" style="margin-top: 20px;">
-              <article class="timeline-card"><h3>문서형</h3><ul><li>요구사항 명세서</li><li>기능 명세서</li><li>구조 명세서</li><li>DB 명세서</li></ul></article>
-              <article class="timeline-card"><h3>기준형</h3><ul><li>DDL</li><li>수정 사유 코멘트</li><li>발표용 HTML deck</li></ul></article>
-            </div>
-          </div>
-        </section>
+          </section>
 
-        <section class="slide" id="closing" data-title="마무리">
-          <div class="slide-frame split-grid">
-            <div class="panel reveal">
-              <p class="eyebrow">Closing</p>
-              <h2 class="section-title">이번 정리는 설계 문서와 구현 기준을 팀 단위로 공유하기 위한 작업이다</h2>
-              <p class="slide-subtitle">
-                설계 문서와 구현 기준을 같은 흐름으로 참고할 수 있게 정리했다.
-              </p>
+          <section class="slide" data-title="딥다이브 1">
+            <div class="slide-grid deep-dive">
+              <article class="panel panel-body">
+                <p class="eyebrow">Booking</p>
+                <h2 class="section-title">예약 흐름은 “실패 원인 표시”와 “성공 후 결제 반영”까지 닫았습니다.</h2>
+                <div class="journey">
+                  <div class="journey-step">
+                    <div class="number">A</div>
+                    <div>
+                      <strong>실패 원인 노출</strong>
+                      <span>겹치는 날짜에서는 서버 에러를 가리지 않고 실제 메시지를 사용자에게 보여줍니다.</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">B</div>
+                    <div>
+                      <strong>결제 수단 매핑 정렬</strong>
+                      <span>프론트 결제 옵션 값을 백엔드 enum과 맞춰 카드/간편결제/가상계좌 흐름을 정렬했습니다.</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">C</div>
+                    <div>
+                      <strong>마이페이지 상세 정합성</strong>
+                      <span>예약번호와 결제 데이터 연결 기준을 맞춰 결제 수단과 날짜를 상세 화면에 노출합니다.</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <aside class="panel panel-body">
+                <p class="eyebrow">Validation</p>
+                <div class="proof-card">
+                  <h3>실검증 결과</h3>
+                  <p>예약 생성 성공 후 `/my/bookings/272` 이동, 결제 정보와 요청사항이 상세 화면에 반영됨을 확인했습니다.</p>
+                  <div class="chip-row" style="margin-top: 18px">
+                    <span class="chip strong">POST /api/booking 200</span>
+                    <span class="chip strong">POST /api/payments 200</span>
+                    <span class="chip">신용/체크카드 표시</span>
+                  </div>
+                </div>
+              </aside>
             </div>
-            <div class="panel reveal">
-              <p class="eyebrow">Key Result</p>
-              <ul>
-                <li>문서 허브 정리</li>
-                <li>문의 모델 정리</li>
-                <li>DB 상태 모델 정리</li>
-                <li>공유용 자료 구성</li>
-              </ul>
+          </section>
+
+          <section class="slide" data-title="딥다이브 2">
+            <div class="slide-grid deep-dive">
+              <article class="panel panel-body">
+                <p class="eyebrow">Promotion</p>
+                <h2 class="section-title">이벤트와 쿠폰은 관리자 입력값이 실제 고객 화면에 보이도록 정리했습니다.</h2>
+                <div class="grid-3" style="margin-top: 24px">
+                  <div class="story-card">
+                    <span class="kicker">Admin</span>
+                    <h3>등록</h3>
+                    <p>이벤트와 쿠폰을 운영 기간, 상태, 할인 값 기준으로 관리</p>
+                  </div>
+                  <div class="story-card">
+                    <span class="kicker">Frontend</span>
+                    <h3>노출</h3>
+                    <p>`/events`에서 관리자 쿠폰명과 할인 정보가 함께 식별되도록 변경</p>
+                  </div>
+                  <div class="story-card">
+                    <span class="kicker">Validation</span>
+                    <h3>반영</h3>
+                    <p>등록 직후 사용자 목록에 실데이터 기준으로 즉시 표시되는지 검증</p>
+                  </div>
+                </div>
+                <div class="quote">
+                  운영자 입장에서는 “등록 가능”이 아니라 <span class="emphasis">“등록 후 사용자 화면에서 바로 보인다”</span>가 핵심입니다.
+                </div>
+              </article>
+
+              <aside class="panel panel-body">
+                <p class="eyebrow">Validation</p>
+                <div class="proof-card">
+                  <h3>실검증 결과</h3>
+                  <p>`QA 퍼센트 쿠폰`, `QA 쿠폰 저장 재검증`, `QA 이벤트 20260407`가 `/events`에 반영된 상태를 확인했습니다.</p>
+                  <div class="chip-row" style="margin-top: 18px">
+                    <span class="chip strong">POST /api/coupon 200</span>
+                    <span class="chip strong">GET /api/coupon/list 200</span>
+                    <span class="chip">coupon name visible</span>
+                  </div>
+                </div>
+              </aside>
             </div>
+          </section>
+
+          <section class="slide" data-title="딥다이브 3">
+            <div class="slide-grid deep-dive">
+              <article class="panel panel-body">
+                <p class="eyebrow">Operations</p>
+                <h2 class="section-title">운영 화면은 단순 CRUD가 아니라 문제를 바로 판단할 수 있게 다듬었습니다.</h2>
+                <div class="journey">
+                  <div class="journey-step">
+                    <div class="number">1</div>
+                    <div>
+                      <strong>쿠폰 등록 폼 단순화</strong>
+                      <span>정률 기준으로 정리하고 날짜 입력 구조를 더 명확하게 재구성했습니다.</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">2</div>
+                    <div>
+                      <strong>실패 문구 위치 수정</strong>
+                      <span>헤더 뒤로 숨던 실패 메시지를 우측 등록 패널 안으로 이동했습니다.</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">3</div>
+                    <div>
+                      <strong>날짜 역전 사전 차단</strong>
+                      <span>종료 일시가 시작보다 빠를 때 서버 실패처럼 보이지 않도록 프론트에서 먼저 막습니다.</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <aside class="panel panel-body">
+                <p class="eyebrow">Quality</p>
+                <div class="proof-card">
+                  <h3>운영 완성도 포인트</h3>
+                  <p>관리자는 등록이 안 될 때 이유를 즉시 보고, 정상 등록 시 바로 목록과 사용자 화면까지 확인할 수 있습니다.</p>
+                  <div class="tag-row" style="margin-top: 18px">
+                    <span class="tag">패널 내 오류 표시</span>
+                    <span class="tag">날짜 역전 검증</span>
+                    <span class="tag">등록 성공 토스트</span>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="slide" data-title="근거">
+            <div class="slide-grid">
+              <article class="panel panel-body">
+                <p class="eyebrow">Evidence</p>
+                <h2 class="section-title">추정이 아니라 실제 검증 로그를 근거로 정리했습니다.</h2>
+                <div class="proof-grid" style="margin-top: 24px">
+                  <div class="proof-card">
+                    <span class="kicker">Booking</span>
+                    <h3>예약 생성 성공</h3>
+                    <p>`POST /api/booking => 200`, `POST /api/payments => 200`, 예약 상세 진입까지 확인</p>
+                  </div>
+                  <div class="proof-card">
+                    <span class="kicker">Promotion</span>
+                    <h3>이벤트/쿠폰 즉시 노출</h3>
+                    <p>관리자 등록 후 `/events` 목록에서 실데이터 카드 확인</p>
+                  </div>
+                  <div class="proof-card">
+                    <span class="kicker">Database</span>
+                    <h3>user/admin 컬럼 저장 확인</h3>
+                    <p>`EVENTS.ADMIN_USER_NO`, `COUPONS.ISSUED_BY_USER_NO` 실제 저장 확인</p>
+                  </div>
+                  <div class="proof-card">
+                    <span class="kicker">Build</span>
+                    <h3>프론트 빌드 검증</h3>
+                    <p>최종 수정 후 빌드 통과, chunk warning만 존재</p>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="slide" data-title="결과">
+            <div class="slide-grid">
+              <article class="panel panel-body">
+                <p class="eyebrow">Result</p>
+                <h2 class="section-title">결과적으로 TripZone는 “보여주는 서비스”가 아니라 “이어지는 서비스”가 되었습니다.</h2>
+                <div class="impact-grid" style="margin-top: 24px">
+                  <div class="story-card impact-card">
+                    <strong>01</strong>
+                    <span>고객 관점에서 예약, 결제, 마이페이지 흐름을 실제로 데모할 수 있습니다.</span>
+                  </div>
+                  <div class="story-card impact-card">
+                    <strong>02</strong>
+                    <span>운영 관점에서 관리자 이벤트/쿠폰 등록이 사용자 화면과 DB까지 연결됩니다.</span>
+                  </div>
+                  <div class="story-card impact-card">
+                    <strong>03</strong>
+                    <span>기능 개수보다 데이터 정합성과 검증 증거를 분명하게 설명할 수 있습니다.</span>
+                  </div>
+                  <div class="story-card impact-card">
+                    <strong>04</strong>
+                    <span>고객 경험과 구현 완성도를 동시에 보여줄 수 있습니다.</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="slide" data-title="요약">
+            <div class="slide-grid closing-layout">
+              <article class="panel panel-body">
+                <p class="eyebrow">Summary</p>
+                <h2 class="section-title">TripZone의 핵심 메시지는 간단합니다.</h2>
+                <div class="quote" style="margin-top: 22px">
+                  고객이 예약한 정보가 마이페이지에 남고,<br />
+                  관리자가 등록한 쿠폰이 사용자 화면에 보이며,<br />
+                  판매자가 실제 예약 요청을 운영할 수 있어야 합니다.
+                </div>
+                <div class="chip-row" style="margin-top: 22px">
+                  <span class="chip strong">Connected Experience</span>
+                  <span class="chip strong">Operational Integrity</span>
+                  <span class="chip strong">Presentation Ready</span>
+                </div>
+              </article>
+
+              <article class="panel cta-card">
+                <p class="eyebrow">Core Message</p>
+                <h2 class="section-title">고객 경험과 운영 데이터가 끝까지 이어지는 숙박 플랫폼</h2>
+                <p class="lead" style="max-width: 480px">
+                  화면 소개를 넘어서, 실제 서비스 흐름이 닫혀 있다는 점을 보여주는 구조입니다.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          <section class="slide" data-title="행동 유도">
+            <div class="slide-grid closing-layout">
+              <article class="panel cta-card">
+                <p class="eyebrow">Next Step</p>
+                <h2 class="section-title">이제 시연은 고객 여정 기준으로 바로 들어가면 됩니다.</h2>
+                <div class="journey" style="margin-top: 22px">
+                  <div class="journey-step">
+                    <div class="number">1</div>
+                    <div>
+                      <strong>사용자 예약 시연</strong>
+                      <span>숙소 선택 → 예약 생성 → 마이페이지 상세 확인</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">2</div>
+                    <div>
+                      <strong>관리자 프로모션 시연</strong>
+                      <span>이벤트/쿠폰 등록 → `/events` 반영 확인</span>
+                    </div>
+                  </div>
+                  <div class="journey-step">
+                    <div class="number">3</div>
+                    <div>
+                      <strong>운영 완성도 강조</strong>
+                      <span>실패 사유 노출, DB 저장, 판매자/관리자 연동 포인트 설명</span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel panel-body">
+                <p class="eyebrow">Ready</p>
+                <h2 class="section-title">보여주고, 검증했고, 바로 시연 가능합니다.</h2>
+                <p class="lead">
+                  핵심 키워드는 세 개면 충분합니다.<br />
+                  <span class="emphasis">예약 연결</span> ·
+                  <span class="emphasis">프로모션 반영</span> ·
+                  <span class="emphasis">운영 완성도</span>
+                </p>
+                <div class="big-action">TripZone Demo Start</div>
+              </article>
+            </div>
+          </section>
+        </main>
+
+        <footer class="footer-nav">
+          <div class="nav-help">← → 키로 이동</div>
+          <div class="slide-indicators" id="indicators"></div>
+          <div class="nav-buttons">
+            <button class="nav-button" id="prevButton" aria-label="이전 슬라이드">←</button>
+            <button class="nav-button" id="nextButton" aria-label="다음 슬라이드">→</button>
           </div>
-        </section>
-      </main>
+        </footer>
+      </div>
     </div>
-    <script src="../assets/presentation.js"></script>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const progressBar = document.getElementById("progressBar");
+      const slideIndex = document.getElementById("slideIndex");
+      const slideTitle = document.getElementById("slideTitle");
+      const indicators = document.getElementById("indicators");
+      const prevButton = document.getElementById("prevButton");
+      const nextButton = document.getElementById("nextButton");
+      let current = 0;
+
+      slides.forEach((_, index) => {
+        const dot = document.createElement("button");
+        dot.className = "indicator";
+        dot.type = "button";
+        dot.setAttribute("aria-label", `${index + 1}번 슬라이드`);
+        dot.addEventListener("click", () => goTo(index));
+        indicators.appendChild(dot);
+      });
+
+      function refreshAnimations(slide) {
+        slide.querySelectorAll(".fade-up").forEach((node) => {
+          node.style.animation = "none";
+          void node.offsetWidth;
+          node.style.animation = "";
+        });
+      }
+
+      function goTo(index) {
+        if (index < 0 || index >= slides.length) return;
+        slides[current].classList.remove("active");
+        current = index;
+        const activeSlide = slides[current];
+        activeSlide.classList.add("active");
+        refreshAnimations(activeSlide);
+
+        const progress = ((current + 1) / slides.length) * 100;
+        progressBar.style.width = `${progress}%`;
+        slideIndex.textContent = String(current + 1).padStart(2, "0");
+        slideTitle.textContent = activeSlide.dataset.title || "";
+
+        Array.from(indicators.children).forEach((dot, dotIndex) => {
+          dot.classList.toggle("active", dotIndex === current);
+        });
+      }
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+          event.preventDefault();
+          goTo(Math.min(current + 1, slides.length - 1));
+        }
+        if (event.key === "ArrowLeft" || event.key === "PageUp") {
+          event.preventDefault();
+          goTo(Math.max(current - 1, 0));
+        }
+      });
+
+      prevButton.addEventListener("click", () => goTo(Math.max(current - 1, 0)));
+      nextButton.addEventListener("click", () => goTo(Math.min(current + 1, slides.length - 1)));
+
+      goTo(0);
+    </script>
   </body>
 </html>

@@ -133,11 +133,6 @@ export default function BookingPage() {
   }, [form, mileageBalance]);
 
   useEffect(() => {
-    if (!form || Number(form.mileageToUse ?? 0) === 0) return;
-    setForm((current) => ({ ...current, mileageToUse: 0 }));
-  }, [form]);
-
-  useEffect(() => {
     const handlePointerDown = (event) => {
       const dateAnchor = openMenu === "date-start" ? checkInRef.current : checkOutRef.current;
       if (
@@ -224,8 +219,8 @@ export default function BookingPage() {
       return;
     }
 
-    if (Number(form.mileageToUse ?? 0) > 0) {
-      setSubmitError("마일리지 차감 저장은 아직 결제 연동 전입니다. 0P로 진행해 주세요.");
+    if (Number(form.mileageToUse ?? 0) > Number(mileageBalance ?? 0)) {
+      setSubmitError("보유 마일리지를 초과했습니다.");
       return;
     }
 
@@ -236,6 +231,7 @@ export default function BookingPage() {
       const bookingResponse = await createBookingReservation({
         roomNo: selectedRoom.roomId,
         userCouponNo: selectedCoupon.userCouponNo ?? null,
+        mileageUsed: mileageUsed,
         checkInDate: `${form.checkIn}T${lodging.checkInTime ?? "15:00"}:00`,
         checkOutDate: `${form.checkOut}T${lodging.checkOutTime ?? "11:00"}:00`,
         guestCount: Number(form.guests),

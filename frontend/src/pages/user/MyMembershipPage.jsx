@@ -38,7 +38,7 @@ export default function MyMembershipPage() {
       try {
         const [summaryResponse, bookingsResponse, mileageResponse] = await Promise.all([
           getMyProfileSummary(),
-          getMyBookings(),
+          getMyBookings({ force: true }),
           getMyMileage(),
         ]);
         if (cancelled) return;

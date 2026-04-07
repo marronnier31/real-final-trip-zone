@@ -22,8 +22,9 @@ const RESOURCE_KEYS = {
 // InquiryRoom + InquiryMessage, OPEN/ANSWERED/CLOSED/BLOCKED.
 
 function readMyHomeCache() {
-  if (myHomeMemoryCache) {
-    return myHomeMemoryCache;
+  const scopedKey = getScopedCacheKey(MY_HOME_CACHE_KEY);
+  if (myHomeMemoryCache?.key === scopedKey) {
+    return myHomeMemoryCache.value;
   }
 
   if (typeof window === "undefined") {
@@ -31,10 +32,10 @@ function readMyHomeCache() {
   }
 
   try {
-    const raw = window.sessionStorage.getItem(MY_HOME_CACHE_KEY);
+    const raw = window.sessionStorage.getItem(scopedKey);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    myHomeMemoryCache = parsed;
+    myHomeMemoryCache = { key: scopedKey, value: parsed };
     return parsed;
   } catch {
     return null;
@@ -123,14 +124,15 @@ async function fetchCachedResource(baseKey, fetcher, options = {}) {
 }
 
 function writeMyHomeCache(response) {
-  myHomeMemoryCache = response;
+  const scopedKey = getScopedCacheKey(MY_HOME_CACHE_KEY);
+  myHomeMemoryCache = { key: scopedKey, value: response };
 
   if (typeof window === "undefined") {
     return;
   }
 
   try {
-    window.sessionStorage.setItem(MY_HOME_CACHE_KEY, JSON.stringify(response));
+    window.sessionStorage.setItem(scopedKey, JSON.stringify(response));
   } catch {
     // 세션 저장 실패 시 메모리 캐시만 사용한다.
   }
@@ -145,7 +147,7 @@ export function invalidateMyHomeCache() {
   }
 
   try {
-    window.sessionStorage.removeItem(MY_HOME_CACHE_KEY);
+    window.sessionStorage.removeItem(getScopedCacheKey(MY_HOME_CACHE_KEY));
   } catch {
     // 세션 저장소 접근 실패는 무시한다.
   }
@@ -211,8 +213,8 @@ export async function withdrawMyAccount() {
   return { ok: true };
 }
 
-export async function getMyBookings() {
-  const response = await fetchCachedResource(RESOURCE_KEYS.bookings, () => get("/api/mypage/bookings"));
+export async function getMyBookings(options = {}) {
+  const response = await fetchCachedResource(RESOURCE_KEYS.bookings, () => get("/api/mypage/bookings"), options);
   return response.items ?? [];
 }
 
@@ -222,21 +224,21 @@ function normalizeBookingKey(value) {
   return raw.replace(/^B-/, "");
 }
 
-export async function getMyBookingById(bookingId) {
-  const rows = await getMyBookings();
+export async function getMyBookingById(bookingId, options = {}) {
+  const rows = await getMyBookings(options);
   return rows.find((item) =>
     normalizeBookingKey(item.bookingId) === normalizeBookingKey(bookingId) ||
     normalizeBookingKey(item.bookingNo) === normalizeBookingKey(bookingId)
   ) ?? null;
 }
 
-export async function getMyPayments() {
-  const response = await fetchCachedResource(RESOURCE_KEYS.payments, () => get("/api/mypage/payments"));
+export async function getMyPayments(options = {}) {
+  const response = await fetchCachedResource(RESOURCE_KEYS.payments, () => get("/api/mypage/payments"), options);
   return response.items ?? [];
 }
 
-export async function getMyPaymentByBookingId(bookingId) {
-  const rows = await getMyPayments();
+export async function getMyPaymentByBookingId(bookingId, options = {}) {
+  const rows = await getMyPayments(options);
   return rows.find((item) =>
     normalizeBookingKey(item.bookingId) === normalizeBookingKey(bookingId) ||
     normalizeBookingKey(item.bookingNo) === normalizeBookingKey(bookingId)

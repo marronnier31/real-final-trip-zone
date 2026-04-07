@@ -110,6 +110,7 @@ export default function LodgingDetailPage() {
   const [inquiryRoomId, setInquiryRoomId] = useState(null);
   const [isInquiryLoading, setIsInquiryLoading] = useState(false);
   const reviewAverage = useMemo(() => getReviewAverage(reviews), [reviews]);
+  const reviewCountLabel = useMemo(() => `${reviews.length}개`, [reviews.length]);
   const reviewSectionRef = useRef(null);
   const inquiryThreadRef = useRef(null);
   const inquiryUnsubscribeRef = useRef(() => {});
@@ -353,15 +354,6 @@ export default function LodgingDetailPage() {
   }, [authSession?.accessToken, reviewDraft.images, reviewImagePreviewMap, reviews]);
 
   useEffect(() => () => revokeResolvedReviewImageUrls(reviewImagePreviewMap), []);
-
-  useEffect(() => {
-    if (!myExistingReview) return;
-    if (reviewDraft.reviewId === myExistingReview.id) return;
-    if (reviewDraft.reviewId || reviewDraft.body.trim() || reviewDraft.images.length) return;
-
-    setReviewDraft(buildReviewDraftFromReview(myExistingReview));
-    setReviewNotice("작성한 후기를 불러왔습니다. 수정 또는 삭제할 수 있습니다.");
-  }, [myExistingReview, reviewDraft.reviewId, reviewDraft.body, reviewDraft.images.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -784,7 +776,7 @@ export default function LodgingDetailPage() {
               className="detail-hero-review-chip"
               onClick={() => reviewSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
             >
-              ★ {lodging.rating} · {lodging.reviewCount}
+              ★ {reviewAverage} · {reviewCountLabel}
             </button>
             <span>{lodging.type}</span>
           </div>
@@ -857,7 +849,7 @@ export default function LodgingDetailPage() {
           <div className="detail-info-rail">
             <div className="detail-info-item">
               <strong>평점</strong>
-              <p className="detail-info-rating-value">★ {lodging.rating} · {lodging.reviewCount}</p>
+              <p className="detail-info-rating-value">★ {reviewAverage} · {reviewCountLabel}</p>
             </div>
             <div className="detail-info-item">
               <strong>체크인</strong>
@@ -931,8 +923,8 @@ export default function LodgingDetailPage() {
             <ReviewSection
               authSession={authSession}
               canWriteReview={canWriteReview}
-              lodging={lodging}
               reviewAverage={reviewAverage}
+              reviewCountLabel={reviewCountLabel}
               reviewDraft={resolvedReviewDraft}
               reviews={resolvedReviews}
               onChangeDraft={(patch) => setReviewDraft((current) => ({ ...current, ...patch }))}
@@ -947,7 +939,14 @@ export default function LodgingDetailPage() {
           </section>
         </section>
 
-        <StickyBookingCard lodging={lodging} selectedRoom={selectedRoom} roomBaseMeta={roomBaseMeta} bookingDateSuffix={bookingDateSuffix} />
+          <StickyBookingCard
+            lodging={lodging}
+            selectedRoom={selectedRoom}
+            roomBaseMeta={roomBaseMeta}
+            bookingDateSuffix={bookingDateSuffix}
+            ratingLabel={reviewAverage}
+            reviewCountLabel={reviewCountLabel}
+          />
       </section>
 
       {isInquiryOpen && (

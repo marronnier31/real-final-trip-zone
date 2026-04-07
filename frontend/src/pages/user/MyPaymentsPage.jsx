@@ -24,7 +24,7 @@ export default function MyPaymentsPage() {
     async function loadPayments() {
       try {
         setIsLoading(true);
-        const [bookings, payments] = await Promise.all([getMyBookings(), getMyPayments()]);
+    const [bookings, payments] = await Promise.all([getMyBookings({ force: true }), getMyPayments({ force: true })]);
         if (cancelled) return;
         setMyBookingRows(bookings);
         setPaymentHistoryRows(payments);

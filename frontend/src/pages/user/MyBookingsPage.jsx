@@ -9,26 +9,12 @@ import {
 import { getCachedLodgingsSnapshot, getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
 import { getMyBookings } from "../../services/mypageService";
 
-const MY_BOOKINGS_CACHE_KEY = "tripzone-my-bookings";
-
-function readMyBookingsCache() {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = window.sessionStorage.getItem(MY_BOOKINGS_CACHE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function MyBookingsPage() {
   const cachedLodgings = getCachedLodgingsSnapshot();
-  const cachedBookings = readMyBookingsCache();
   const [tab, setTab] = useState("upcoming");
   const [lodgings, setLodgings] = useState(cachedLodgings);
-  const [myBookingRows, setMyBookingRows] = useState(cachedBookings);
-  const [isLoading, setIsLoading] = useState(!(cachedLodgings.length && cachedBookings.length));
+  const [myBookingRows, setMyBookingRows] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { upcomingCount, completedCount } = getBookingTabSummary(myBookingRows);
   const filteredRows = filterBookingRows(myBookingRows, tab);
   const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
@@ -39,16 +25,11 @@ export default function MyBookingsPage() {
 
     async function loadBookingScreen() {
       try {
-        if (!(cachedLodgings.length && cachedBookings.length)) {
-          setIsLoading(true);
-        }
-        const [rows, bookingRows] = await Promise.all([getLodgings(), getMyBookings()]);
+        setIsLoading(true);
+        const [rows, bookingRows] = await Promise.all([getLodgings(), getMyBookings({ force: true })]);
         if (cancelled) return;
         setLodgings(rows);
         setMyBookingRows(bookingRows);
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(MY_BOOKINGS_CACHE_KEY, JSON.stringify(bookingRows));
-        }
       } catch (error) {
         console.error("Failed to load booking lodgings.", error);
       } finally {

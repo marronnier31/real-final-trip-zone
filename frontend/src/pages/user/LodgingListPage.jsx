@@ -50,8 +50,8 @@ export default function LodgingListPage() {
   const discounts = filters.discounts;
   const grades = filters.grades;
   const facilities = filters.facilities;
-  const minPrice = clamp(filters.minPrice, 0, 500000);
-  const maxPrice = clamp(filters.maxPrice, minPrice, 500000);
+  const minPrice = clamp(filters.minPrice, 0, 100000000);
+  const maxPrice = clamp(filters.maxPrice, minPrice, 100000000);
   const availableOnly = filters.availableOnly;
   const filterPageResetKey = searchParams.toString();
 
