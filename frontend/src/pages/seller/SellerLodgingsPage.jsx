@@ -34,6 +34,47 @@ const INITIAL_FORM = {
   uploadFileNames: [],
 };
 
+async function geocodeLodgingAddress({ region, address, detailAddress }) {
+  const normalizedRegion = region?.trim() ?? "";
+  const normalizedAddress = address?.trim() ?? "";
+  const normalizedDetail = detailAddress?.trim() ?? "";
+  const attempts = [
+    [normalizedRegion, normalizedAddress],
+    [normalizedAddress],
+    [normalizedRegion, normalizedAddress, normalizedDetail],
+  ]
+    .map((parts) => parts.filter(Boolean).join(" ").trim())
+    .filter(Boolean);
+
+  if (!attempts.length) {
+    throw new Error("주소를 먼저 입력해 주세요.");
+  }
+
+  for (const term of attempts) {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kr&q=${encodeURIComponent(term)}`,
+    );
+
+    if (!response.ok) {
+      throw new Error("주소 좌표를 확인하지 못했습니다.");
+    }
+
+    const rows = await response.json();
+    const target = Array.isArray(rows) ? rows[0] : null;
+    const latitude = Number(target?.lat);
+    const longitude = Number(target?.lon);
+
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return {
+        latitude: String(latitude),
+        longitude: String(longitude),
+      };
+    }
+  }
+
+  throw new Error("입력한 주소의 위치를 찾지 못했습니다.");
+}
+
 function toLodgingForm(lodging) {
   return {
     name: lodging?.name ?? "",
@@ -178,8 +219,15 @@ export default function SellerLodgingsPage() {
 
     try {
       setIsSubmitting(true);
+      const geocoded = await geocodeLodgingAddress(form);
+      const payload = {
+        ...form,
+        latitude: geocoded.latitude,
+        longitude: geocoded.longitude,
+      };
+
       if (mode === "create") {
-        const created = await createSellerLodging(form);
+        const created = await createSellerLodging(payload);
         const refreshedRows = await getSellerLodgings();
         const createdWithRooms = refreshedRows.find((row) => row.id === created.id) ?? created;
         setRows(refreshedRows);
@@ -188,7 +236,7 @@ export default function SellerLodgingsPage() {
         setForm(toLodgingForm(createdWithRooms));
         setNotice("숙소를 등록했습니다. 객실 가격은 객실 관리에서 입력해 주세요.");
       } else if (selected) {
-        const updated = await updateSellerLodging(selected.id, form);
+        const updated = await updateSellerLodging(selected.id, payload);
         const refreshedRows = await getSellerLodgings();
         const refreshed = refreshedRows.find((row) => row.id === updated.id) ?? updated;
         setRows(refreshedRows);

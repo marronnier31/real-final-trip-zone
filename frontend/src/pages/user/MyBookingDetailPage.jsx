@@ -21,8 +21,8 @@ export default function MyBookingDetailPage() {
         setIsLoading(true);
         const [rows, bookingRow, paymentRow] = await Promise.all([
           getLodgings(),
-          getMyBookingById(bookingId),
-          getMyPaymentByBookingId(bookingId),
+          getMyBookingById(bookingId, { force: true }),
+          getMyPaymentByBookingId(bookingId, { force: true }),
         ]);
         if (cancelled) return;
         setLodgings(rows);

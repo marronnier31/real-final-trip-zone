@@ -63,6 +63,22 @@ function hasInvalidDateRange(startDate, endDate) {
   return end <= start;
 }
 
+function getCouponDiscountFieldMeta(discountType) {
+  if (discountType === "PERCENT") {
+    return {
+      min: "1",
+      max: "100",
+      suffix: "%",
+    };
+  }
+
+  return {
+    min: "1",
+    max: undefined,
+    suffix: "원",
+  };
+}
+
 export default function AdminEventsPage() {
   const [rows, setRows] = useState([]);
   const [section, setSection] = useState("EVENT");
@@ -142,16 +158,16 @@ export default function AdminEventsPage() {
   const syncDraft = (eventId, sourceRows = rows) => {
     const target = sourceRows.find((row) => row.id === eventId);
     if (!target) return;
-    setDraft({
-      title: target.title,
-      content: target.content ?? "",
-      targetValue: target.targetValue ?? "theme=deal",
-      startDate: target.startDate ? target.startDate.slice(0, 16) : "",
-      endDate: target.endDate ? target.endDate.slice(0, 16) : "",
-      discountType: "PERCENT",
-      discountValue: String(target.discountValue ?? 10),
-      status: target.status ?? "DRAFT",
-    });
+      setDraft({
+        title: target.title,
+        content: target.content ?? "",
+        targetValue: target.targetValue ?? "theme=deal",
+        startDate: target.startDate ? target.startDate.slice(0, 16) : "",
+        endDate: target.endDate ? target.endDate.slice(0, 16) : "",
+        discountType: target.discountType ?? "AMOUNT",
+        discountValue: String(target.discountValue ?? (target.discountType === "PERCENT" ? 10 : 10000)),
+        status: target.status ?? "DRAFT",
+      });
     setUploadFile(null);
     setMode("edit");
   };
@@ -160,16 +176,16 @@ export default function AdminEventsPage() {
     setMode("create");
     setSelectedEventId(null);
     setUploadFile(null);
-    setDraft({
-      title: "",
-      content: "",
-      targetValue: "theme=deal",
-      startDate: "",
-      endDate: "",
-      discountType: "PERCENT",
-      discountValue: "10",
-      status: section === "EVENT" ? "DRAFT" : "INACTIVE",
-    });
+      setDraft({
+        title: "",
+        content: "",
+        targetValue: "theme=deal",
+        startDate: "",
+        endDate: "",
+        discountType: "AMOUNT",
+        discountValue: "10000",
+        status: section === "EVENT" ? "DRAFT" : "INACTIVE",
+      });
   };
 
   const updateStatus = async (nextStatus) => {
@@ -225,6 +241,7 @@ export default function AdminEventsPage() {
 
   const startField = splitDateTime(draft.startDate);
   const endField = splitDateTime(draft.endDate);
+  const couponDiscountFieldMeta = getCouponDiscountFieldMeta(draft.discountType);
 
   const handleDelete = async () => {
     if (!selectedEvent || mode === "create") return;
@@ -311,19 +328,22 @@ export default function AdminEventsPage() {
               <>
                 <label className="saas-field">
                   <span>할인 방식</span>
-                  <div className="saas-static-field">% 할인 고정</div>
+                  <select value={draft.discountType} onChange={(event) => setDraft((current) => ({ ...current, discountType: event.target.value }))}>
+                    <option value="AMOUNT">정액</option>
+                    <option value="PERCENT">정률</option>
+                  </select>
                 </label>
                 <label className="saas-field">
                   <span>할인 값</span>
                   <div className="saas-inline-input">
                     <input
                       type="number"
-                      min="1"
-                      max="100"
+                      min={couponDiscountFieldMeta.min}
+                      max={couponDiscountFieldMeta.max}
                       value={draft.discountValue}
-                      onChange={(event) => setDraft((current) => ({ ...current, discountType: "PERCENT", discountValue: event.target.value }))}
+                      onChange={(event) => setDraft((current) => ({ ...current, discountValue: event.target.value }))}
                     />
-                    <span className="saas-inline-suffix">%</span>
+                    <span className="saas-inline-suffix">{couponDiscountFieldMeta.suffix}</span>
                   </div>
                 </label>
               </>

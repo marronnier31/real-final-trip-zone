@@ -29,7 +29,7 @@ export default function Header() {
 
     async function loadHomeSnapshot() {
       try {
-        const response = await getMyHome();
+        const response = await getMyHome({ force: menuOpen });
         if (cancelled) return;
         setHomeSnapshot(response);
       } catch (error) {
@@ -42,7 +42,7 @@ export default function Header() {
     return () => {
       cancelled = true;
     };
-  }, [session?.role]);
+  }, [location.pathname, location.search, menuOpen, session?.role]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -88,7 +88,10 @@ export default function Header() {
   const roleLinks = getHeaderRoleLinks(session);
   const availableCouponCount = session?.role === "ROLE_USER" ? homeSnapshot?.overview?.availableCouponCount ?? 0 : 0;
   const upcomingBookingCount = session?.role === "ROLE_USER" ? homeSnapshot?.overview?.upcomingBookingCount ?? 0 : 0;
-  const mileageValue = homeSnapshot?.profileSummary?.mileage ?? "0P";
+  const mileageValue =
+    session?.role === "ROLE_USER"
+      ? `${Number(homeSnapshot?.profileSummary?.mileage ?? 0).toLocaleString()}P`
+      : "0P";
 
   return (
     <header className={`header${isHome ? " is-home" : ""}`}>

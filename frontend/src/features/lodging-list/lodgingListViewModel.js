@@ -40,7 +40,7 @@ export function parseLodgingSearchState(searchParams, defaults) {
     grades: (searchParams.get("grades") ?? "").split(",").filter(Boolean),
     facilities: (searchParams.get("facilities") ?? "").split(",").filter(Boolean),
     minPrice: queryNumber(searchParams.get("minPrice"), 0),
-    maxPrice: queryNumber(searchParams.get("maxPrice"), 500000),
+    maxPrice: queryNumber(searchParams.get("maxPrice"), 100000000),
     availableOnly: searchParams.get("available") === "1",
   };
 }

@@ -92,8 +92,8 @@ export function RoomOptionsSection({ lodging, roomOptions, selectedRoom, onSelec
 export function ReviewSection({
   authSession,
   canWriteReview,
-  lodging,
   reviewAverage,
+  reviewCountLabel,
   reviewDraft,
   reviews,
   onChangeDraft,
@@ -111,7 +111,7 @@ export function ReviewSection({
       </div>
       <div className="review-summary-strip">
         <span className="accent-rating">★ {reviewAverage}</span>
-        <span>{lodging.reviewCount}</span>
+        <span>{reviewCountLabel}</span>
       </div>
       {authSession && canWriteReview ? (
         <form className="detail-review-form" onSubmit={onSubmit}>
@@ -209,7 +209,14 @@ export function ReviewSection({
   );
 }
 
-export function StickyBookingCard({ lodging, selectedRoom, roomBaseMeta, bookingDateSuffix = "" }) {
+export function StickyBookingCard({
+  lodging,
+  selectedRoom,
+  roomBaseMeta,
+  bookingDateSuffix = "",
+  ratingLabel,
+  reviewCountLabel,
+}) {
   if (!selectedRoom) {
     return (
       <aside className="sticky-booking-card">
@@ -238,8 +245,8 @@ export function StickyBookingCard({ lodging, selectedRoom, roomBaseMeta, booking
         <span>1박 기준</span>
       </div>
       <div className="sticky-booking-meta">
-        <span>★ {lodging.rating}</span>
-        <span>{lodging.reviewCount}</span>
+        <span>★ {ratingLabel}</span>
+        <span>{reviewCountLabel}</span>
       </div>
       <div className="sticky-booking-note">
         <p><span className="sticky-booking-dot" aria-hidden="true" />{selectedRoom.description}</p>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
 import { toUserFacingErrorMessage } from "../../lib/appClient";
@@ -18,6 +18,7 @@ export default function AdminInquiriesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [replyDraft, setReplyDraft] = useState("");
   const [isReplying, setIsReplying] = useState(false);
+  const threadListRef = useRef(null);
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0] ?? null;
 
   useEffect(() => {
@@ -52,6 +53,15 @@ export default function AdminInquiriesPage() {
   useEffect(() => {
     setReplyDraft("");
   }, [selectedId]);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      if (!threadListRef.current) return;
+      threadListRef.current.scrollTop = threadListRef.current.scrollHeight;
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [selected?.messages, selectedId]);
 
   const updateStatus = async (nextStatus) => {
     if (!selected) return;
@@ -124,7 +134,7 @@ export default function AdminInquiriesPage() {
               <span>문의 요약</span>
               <textarea rows={3} value={selected?.summary ?? ""} readOnly />
             </label>
-            <div className="inquiry-thread-list admin-inquiry-thread-list">
+            <div ref={threadListRef} className="inquiry-thread-list admin-inquiry-thread-list">
               {(selected?.messages ?? []).map((message) => (
                 <article
                   key={`${selected?.id}-${message.id}`}

@@ -183,20 +183,19 @@ export function BookingFormSection({
               step="1000"
               className="booking-number-input"
               value={form.mileageToUse}
-              disabled
               placeholder="0"
               onChange={(event) => {
                 const nextValue = Number(event.target.value);
                 setForm((current) => ({
                   ...current,
-                  mileageToUse: Math.max(0, Number.isFinite(nextValue) ? nextValue : 0),
+                  mileageToUse: Math.max(0, Math.min(Number.isFinite(nextValue) ? nextValue : 0, mileageBalance)),
                 }));
               }}
             />
             <button
               type="button"
               className="secondary-button booking-inline-button"
-              disabled
+              disabled={mileageBalance <= 0}
               onClick={() =>
                 setForm((current) => ({
                   ...current,
@@ -207,7 +206,7 @@ export function BookingFormSection({
               전액 사용
             </button>
           </div>
-          <small>마일리지 사용은 현재 준비 중입니다.</small>
+          <small>보유 마일리지 {Number(mileageBalance ?? 0).toLocaleString()}P까지 사용할 수 있습니다.</small>
         </label>
 
         <label className="booking-field booking-field-full">
