@@ -2084,6 +2084,18 @@
   font-weight: 800;
 }
 
+.booking-cancel-button {
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+}
+
+.booking-actions .booking-cancel-button {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+}
+
 .my-feedback-modal {
   position: fixed;
   inset: 0;

@@ -232,6 +232,12 @@ export async function getMyBookingById(bookingId, options = {}) {
   ) ?? null;
 }
 
+export async function cancelMyBooking(bookingId) {
+  await del(`/api/booking/${normalizeBookingKey(bookingId)}`);
+  invalidateMyPageCaches();
+  return { ok: true };
+}
+
 export async function getMyPayments(options = {}) {
   const response = await fetchCachedResource(RESOURCE_KEYS.payments, () => get("/api/mypage/payments"), options);
   return response.items ?? [];

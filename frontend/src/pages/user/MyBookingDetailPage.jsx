@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
-import { getMyBookingById, getMyPaymentByBookingId } from "../../services/mypageService";
+import { cancelMyBooking, getMyBookingById, getMyPaymentByBookingId } from "../../services/mypageService";
 
 export default function MyBookingDetailPage() {
   const { bookingId } = useParams();
@@ -10,6 +10,7 @@ export default function MyBookingDetailPage() {
   const [booking, setBooking] = useState(null);
   const [payment, setPayment] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [notice, setNotice] = useState("");
   const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
   const formatMeta = (...parts) => parts.filter((part) => typeof part === "string" && part.trim()).join(" · ");
 
@@ -54,6 +55,7 @@ export default function MyBookingDetailPage() {
 
   const lodging = lodgingMap[booking.lodgingId];
   const statusLabel = booking.bookingStatusLabel ?? booking.status;
+  const canCancelBooking = booking.status === "PENDING" || booking.status === "CONFIRMED";
   const overviewItems = [
     { label: "예약 일정", value: booking.stay },
     { label: "객실", value: lodging?.room ?? "객실 정보 없음" },
@@ -61,8 +63,28 @@ export default function MyBookingDetailPage() {
     { label: "취소 규정", value: lodging?.cancellation ?? "확인 필요" },
   ];
 
+  const handleCancelBooking = async () => {
+    const confirmed = window.confirm("예약을 취소하시겠습니까?");
+    if (!confirmed) return;
+
+    try {
+      await cancelMyBooking(booking.bookingId ?? booking.bookingNo ?? bookingId);
+      const [bookingRow, paymentRow] = await Promise.all([
+        getMyBookingById(bookingId, { force: true }),
+        getMyPaymentByBookingId(bookingId, { force: true }),
+      ]);
+      setBooking(bookingRow);
+      setPayment(paymentRow);
+      setNotice("예약 취소 신청이 완료되었습니다.");
+    } catch (error) {
+      console.error("Failed to cancel booking detail.", error);
+      setNotice(error.message || "예약 취소를 진행하지 못했습니다.");
+    }
+  };
+
   return (
     <MyPageLayout>
+      {notice ? <section className="my-page-inline-meta"><span>{notice}</span></section> : null}
       <section className="my-page-inline-meta">
         <span className={`table-code code-${booking.status.toLowerCase()}`}>{statusLabel}</span>
         <span>주문 정보 {bookingId}</span>
@@ -150,6 +172,15 @@ export default function MyBookingDetailPage() {
         <Link className="secondary-button" to={`/lodgings/${booking.lodgingId}`}>
           숙소 상세 보기
         </Link>
+        {canCancelBooking ? (
+          <button
+            type="button"
+            className="danger-button secondary-button booking-cancel-button"
+            onClick={handleCancelBooking}
+          >
+            예약 취소
+          </button>
+        ) : null}
         {booking.status === "COMPLETED" ? (
           <Link className="primary-button" to={`/lodgings/${booking.lodgingId}#reviews`}>
             후기 작성

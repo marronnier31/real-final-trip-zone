@@ -7,7 +7,7 @@ import {
   getBookingTabSummary,
 } from "../../features/mypage/mypageViewModels";
 import { getCachedLodgingsSnapshot, getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
-import { getMyBookings } from "../../services/mypageService";
+import { cancelMyBooking, getMyBookings } from "../../services/mypageService";
 
 export default function MyBookingsPage() {
   const cachedLodgings = getCachedLodgingsSnapshot();
@@ -15,6 +15,7 @@ export default function MyBookingsPage() {
   const [lodgings, setLodgings] = useState(cachedLodgings);
   const [myBookingRows, setMyBookingRows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [notice, setNotice] = useState("");
   const { upcomingCount, completedCount } = getBookingTabSummary(myBookingRows);
   const filteredRows = filterBookingRows(myBookingRows, tab);
   const lodgingMap = useMemo(() => Object.fromEntries(lodgings.map((lodging) => [lodging.id, lodging])), [lodgings]);
@@ -46,6 +47,22 @@ export default function MyBookingsPage() {
     };
   }, []);
 
+  const handleCancelBooking = async (bookingId) => {
+    const confirmed = window.confirm("예약을 취소하시겠습니까?");
+    if (!confirmed) return;
+
+    try {
+      await cancelMyBooking(bookingId);
+      const bookingRows = await getMyBookings({ force: true });
+      setMyBookingRows(bookingRows);
+      setNotice("예약 취소 신청이 완료되었습니다.");
+      setTab("completed");
+    } catch (error) {
+      console.error("Failed to cancel booking.", error);
+      setNotice(error.message || "예약 취소를 진행하지 못했습니다.");
+    }
+  };
+
   return (
     <MyPageLayout>
       <section className="my-list-sheet booking-sheet booking-sheet-v2">
@@ -55,6 +72,7 @@ export default function MyBookingsPage() {
         <div className="mypage-guide-banner">
           <span>예약 확인, 일정 체크, 상세 이동을 한 화면에서 정리했습니다.</span>
         </div>
+        {notice ? <div className="mypage-guide-banner"><span>{notice}</span></div> : null}
         <div className="booking-glance-strip">
           <div className="booking-glance-card is-mint">
             <span>예약중</span>
@@ -132,6 +150,15 @@ export default function MyBookingsPage() {
                   <Link className="coupon-action-button booking-action-button" to={`/my/bookings/${item.bookingId}`}>
                     예약 상세
                   </Link>
+                  {["PENDING", "CONFIRMED"].includes(item.status) ? (
+                    <button
+                      type="button"
+                      className="danger-button booking-action-button booking-cancel-button"
+                      onClick={() => handleCancelBooking(item.bookingId)}
+                    >
+                      예약 취소
+                    </button>
+                  ) : null}
                   {item.status === "COMPLETED" ? (
                     <Link className="text-link" to={`/lodgings/${item.lodgingId}#reviews`}>
                       후기 작성

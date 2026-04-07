@@ -34,17 +34,75 @@ const INITIAL_FORM = {
   uploadFileNames: [],
 };
 
-async function geocodeLodgingAddress({ region, address, detailAddress }) {
+function normalizeRegionName(region) {
+  const value = region?.trim() ?? "";
+  const aliases = {
+    서울: "서울특별시",
+    부산: "부산광역시",
+    대구: "대구광역시",
+    인천: "인천광역시",
+    광주: "광주광역시",
+    대전: "대전광역시",
+    울산: "울산광역시",
+    세종: "세종특별자치시",
+    경기: "경기도",
+    강원: "강원특별자치도",
+    충북: "충청북도",
+    충남: "충청남도",
+    전북: "전북특별자치도",
+    전남: "전라남도",
+    경북: "경상북도",
+    경남: "경상남도",
+    제주: "제주특별자치도",
+  };
+  return aliases[value] ?? value;
+}
+
+function normalizeAddressText(value) {
+  return (value?.trim() ?? "")
+    .replace(/\s+/g, " ")
+    .replace(/([가-힣A-Za-z0-9]+(?:로|대로))\s+(\d+번?길)/g, "$1$2")
+    .replace(/([가-힣A-Za-z0-9]+(?:로|대로))\s+(\d+)/g, "$1 $2");
+}
+
+function compactAddressText(value) {
+  return normalizeAddressText(value).replace(/\s+/g, "");
+}
+
+function sanitizeDetailAddress(value) {
+  return (value?.trim() ?? "")
+    .replace(/\b\d+층\b/g, "")
+    .replace(/\b\d+호\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function uniqueAttempts(partsList) {
+  return [...new Set(partsList.map((parts) => parts.filter(Boolean).join(" ").trim()).filter(Boolean))];
+}
+
+async function geocodeLodgingAddress({ region, address, detailAddress, zipCode }) {
   const normalizedRegion = region?.trim() ?? "";
-  const normalizedAddress = address?.trim() ?? "";
-  const normalizedDetail = detailAddress?.trim() ?? "";
-  const attempts = [
+  const officialRegion = normalizeRegionName(normalizedRegion);
+  const normalizedAddress = normalizeAddressText(address);
+  const compactAddress = compactAddressText(address);
+  const normalizedDetail = sanitizeDetailAddress(detailAddress);
+  const normalizedZipCode = zipCode?.trim() ?? "";
+  const attempts = uniqueAttempts([
+    [normalizedZipCode, officialRegion, normalizedAddress],
+    [normalizedZipCode, officialRegion, compactAddress],
+    [normalizedZipCode, normalizedAddress],
+    [officialRegion, normalizedAddress],
+    [officialRegion, compactAddress],
     [normalizedRegion, normalizedAddress],
+    [normalizedRegion, compactAddress],
     [normalizedAddress],
-    [normalizedRegion, normalizedAddress, normalizedDetail],
-  ]
-    .map((parts) => parts.filter(Boolean).join(" ").trim())
-    .filter(Boolean);
+    [compactAddress],
+    [normalizedZipCode, officialRegion, normalizedAddress, normalizedDetail],
+    [officialRegion, normalizedAddress, normalizedDetail],
+    [officialRegion, compactAddress, normalizedDetail],
+    [normalizedAddress, normalizedDetail],
+  ]);
 
   if (!attempts.length) {
     throw new Error("주소를 먼저 입력해 주세요.");
