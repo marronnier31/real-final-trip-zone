@@ -1,6 +1,9 @@
 import { del, get, patch, post } from "../lib/appClient";
 import { readAuthSession } from "../features/auth/authSession";
 
+function isPercentDiscountType(value) {
+  return value === "PERCENT" || value === "RATE" || String(value ?? "").toLowerCase() === "percent";
+}
 let myCouponSnapshot = [];
 let myHomeMemoryCache = null;
 let myHomeRequestPromise = null;
@@ -259,15 +262,15 @@ function formatDateValue(value) {
 }
 
 function formatExpiryLabel(value, status) {
-  if (status === "USED") return "?ъ슜 ?꾨즺";
+  if (status === "USED") return "사용 완료";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} 留뚮즺`;
+  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} 만료`;
 }
 
 function mapUserCouponDto(dto) {
   const coupon = dto.couponDTO ?? {};
-  const couponStatus = toCouponStatusLabel(dto.status);
+  const couponStatus = dto.status ?? "EXPIRING";
   const target = resolveCouponTarget(coupon.couponName);
 
   return {
@@ -277,14 +280,14 @@ function mapUserCouponDto(dto) {
     name: coupon.couponName,
     couponType: coupon.discountType,
     discountValue: coupon.discountValue,
-    discountLabel: coupon.discountType === "RATE" ? `${coupon.discountValue}%` : `${Number(coupon.discountValue ?? 0).toLocaleString()}원`,
+    discountLabel: isPercentDiscountType(coupon.discountType) ? `${coupon.discountValue}%` : `${Number(coupon.discountValue ?? 0).toLocaleString()}원`,
     status: couponStatus,
-    statusLabel: couponStatus,
+    statusLabel: toCouponStatusLabel(couponStatus),
     expire: formatExpiryLabel(coupon.endDate, dto.status),
     expiredAt: coupon.endDate,
     target,
     appliesTo: target,
-    isUsable: dto.status === "ACTIVE",
+    isUsable: couponStatus === "ACTIVE",
     issuedAt: formatDateValue(dto.issuedAt),
   };
 }
@@ -321,16 +324,16 @@ function mapMyCouponItem(item) {
     discountValue: item.discountValue,
     discountLabel:
       item.discountLabel ??
-      (item.couponType === "RATE"
+      (isPercentDiscountType(item.couponType)
         ? `${item.discountValue}%`
         : `${Number(item.discountValue ?? 0).toLocaleString()}원`),
     status: normalizedStatus,
-    statusLabel: item.statusLabel ?? item.status ?? toCouponStatusDisplay(normalizedStatus),
+    statusLabel: toCouponStatusDisplay(normalizedStatus),
     expire: item.expire ?? "",
     expiredAt: item.expiredAt ?? null,
     target: item.target ?? item.appliesTo ?? resolveCouponTarget(item.couponName ?? item.name),
     appliesTo: item.appliesTo ?? item.target ?? resolveCouponTarget(item.couponName ?? item.name),
-    isUsable: item.isUsable ?? normalizedStatus === "ACTIVE",
+    isUsable: normalizedStatus === "ACTIVE",
     issuedAt: item.issuedAt ?? "",
   };
 }
@@ -343,14 +346,14 @@ function mapCouponCatalogDto(dto) {
     name: dto.couponName,
     couponType: dto.discountType,
     discountValue: dto.discountValue,
-    discountLabel: dto.discountType === "RATE" ? `${dto.discountValue}%` : `${Number(dto.discountValue ?? 0).toLocaleString()}원`, 
-    status: toCouponStatusLabel(dto.status),
+    discountLabel: isPercentDiscountType(dto.discountType) ? `${dto.discountValue}%` : `${Number(dto.discountValue ?? 0).toLocaleString()}원`, 
+    status: dto.status ?? "EXPIRING",
     statusLabel: toCouponStatusLabel(dto.status),
     expire: formatExpiryLabel(dto.endDate, dto.status),
     expiredAt: dto.endDate,
     target,
     appliesTo: target,
-    isUsable: dto.status === "ACTIVE",
+    isUsable: (dto.status ?? "EXPIRING") === "ACTIVE",
     issuedAt: formatDateValue(dto.regDate),
   };
 }
@@ -464,6 +467,10 @@ export function updateInquiryThread(threadId, payload) {
 export function removeInquiryThread(threadId) {
   return del(`/api/inquiry/${threadId}`);
 }
+
+
+
+
 
 
 

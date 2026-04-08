@@ -3,6 +3,12 @@ import { del, get, patch, post, put } from "../lib/appClient";
 import { invalidateLodgingsCache } from "./lodgingService";
 import { getSellerInquiryRooms } from "./sellerInquiryService";
 
+function normalizeDiscountType(value) {
+  if (value === "RATE") return "PERCENT";
+  if (typeof value === "string" && value.toLowerCase() === "percent") return "PERCENT";
+  return value ?? "AMOUNT";
+}
+
 function formatDateLabel(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -116,8 +122,9 @@ function mapEventDto(dto) {
 
 function mapCouponDto(dto) {
   const status = dto.status ?? "INACTIVE";
+  const discountType = normalizeDiscountType(dto.discountType);
   const discountLabel =
-    dto.discountType === "RATE"
+    discountType === "PERCENT"
       ? `${Number(dto.discountValue ?? 0)}% 쿠폰`
       : `${Number(dto.discountValue ?? 0).toLocaleString()}원 쿠폰`;
 
@@ -135,7 +142,7 @@ function mapCouponDto(dto) {
     content: "",
     startDate: dto.startDate ?? "",
     endDate: dto.endDate ?? "",
-    discountType: dto.discountType ?? "AMOUNT",
+    discountType,
     discountValue: dto.discountValue ?? 0,
     adminUser: dto.adminUser ?? 1,
   };
@@ -411,7 +418,7 @@ export async function createAdminCoupon(payload) {
   const response = await post("/api/coupon", {
     adminUser: Number(session?.userNo ?? 1),
     couponName: payload.title,
-    discountType: payload.discountType,
+    discountType: normalizeDiscountType(payload.discountType),
     discountValue: Number(payload.discountValue),
     startDate: payload.startDate,
     endDate: payload.endDate,
@@ -430,7 +437,7 @@ export async function updateAdminEventStatus(currentEvent, nextStatus) {
     await patch(`/api/coupon/${currentEvent.entityNo}`, {
       adminUser: currentEvent.adminUser,
       couponName: currentEvent.title,
-      discountType: currentEvent.discountType,
+      discountType: normalizeDiscountType(currentEvent.discountType),
       discountValue: currentEvent.discountValue,
       startDate: currentEvent.startDate,
       endDate: currentEvent.endDate,
@@ -464,8 +471,8 @@ export async function saveAdminEvent(eventId, draft, currentEvent, imageFile = n
     await patch(`/api/coupon/${currentEvent.entityNo}`, {
       adminUser: currentEvent.adminUser,
       couponName: draft.title,
-      discountType: currentEvent.discountType,
-      discountValue: currentEvent.discountValue,
+      discountType: normalizeDiscountType(draft.discountType),
+      discountValue: Number(draft.discountValue),
       startDate: draft.startDate,
       endDate: draft.endDate,
       status: currentEvent.status ?? "INACTIVE",

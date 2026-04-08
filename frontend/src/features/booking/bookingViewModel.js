@@ -1,5 +1,9 @@
 import { addDays, parseISO, startOfDay, toISO } from "./bookingUtils";
 
+function isPercentDiscountType(value) {
+  return value === "PERCENT" || value === "RATE" || String(value ?? "").toLowerCase() === "percent";
+}
+
 export function buildRoomLabel(room) {
   return `${room.name} · 최대 ${room.maxGuestCount}인`;
 }
@@ -80,7 +84,7 @@ export function buildBookingPricing(lodging, form, selectedCoupon, mileageBalanc
   const serviceFee = 0;
   const roomTotal = baseAmount * nightCount;
   const rawCouponDiscount =
-    selectedCoupon.discountType === "RATE"
+    isPercentDiscountType(selectedCoupon.discountType)
       ? Math.floor((roomTotal * Number(selectedCoupon.discount ?? 0)) / 100)
       : Number(selectedCoupon.discount ?? 0);
   const couponDiscount = Math.min(rawCouponDiscount, roomTotal);

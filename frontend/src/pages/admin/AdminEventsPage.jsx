@@ -32,6 +32,12 @@ function isHiddenStatus(status) {
   return status === "HIDDEN" || status === "INACTIVE" || status === "DELETE";
 }
 
+function normalizeDiscountType(value) {
+  if (value === "RATE") return "PERCENT";
+  if (typeof value === "string" && value.toLowerCase() === "percent") return "PERCENT";
+  return value ?? "AMOUNT";
+}
+
 export default function AdminEventsPage() {
   const [rows, setRows] = useState([]);
   const [section, setSection] = useState("EVENT");
@@ -71,7 +77,7 @@ export default function AdminEventsPage() {
             content: nextRows[0].content ?? "",
             startDate: nextRows[0].startDate ? nextRows[0].startDate.slice(0, 16) : "",
             endDate: nextRows[0].endDate ? nextRows[0].endDate.slice(0, 16) : "",
-            discountType: nextRows[0].discountType ?? "AMOUNT",
+            discountType: normalizeDiscountType(nextRows[0].discountType),
             discountValue: String(nextRows[0].discountValue ?? 10000),
             status: nextRows[0].status ?? "DRAFT",
             coupons: [],
@@ -129,7 +135,7 @@ export default function AdminEventsPage() {
       content: target.content ?? "",
       startDate: target.startDate ? target.startDate.slice(0, 16) : "",
       endDate: target.endDate ? target.endDate.slice(0, 16) : "",
-      discountType: target.discountType ?? "AMOUNT",
+      discountType: normalizeDiscountType(target.discountType),
       discountValue: String(target.discountValue ?? 10000),
       status: target.status ?? "DRAFT",
       coupons: nextCoupons,
@@ -305,9 +311,9 @@ export default function AdminEventsPage() {
               <>
                 <label className="saas-field">
                   <span>할인 방식</span>
-                  <select value={draft.discountType} onChange={(event) => setDraft((current) => ({ ...current, discountType: event.target.value }))}>
+                  <select value={normalizeDiscountType(draft.discountType)} onChange={(event) => setDraft((current) => ({ ...current, discountType: event.target.value }))}>
                     <option value="AMOUNT">정액</option>
-                    <option value="RATE">정률</option>
+                    <option value="PERCENT">정률</option>
                   </select>
                 </label>
                 <label className="saas-field">
