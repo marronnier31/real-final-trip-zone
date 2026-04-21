@@ -1,4 +1,4 @@
-export const BOOKING_STATUS_LABELS = {
+﻿export const BOOKING_STATUS_LABELS = {
   CONFIRMED: "확정",
   PENDING: "대기",
   COMPLETED: "숙박 완료",
@@ -64,14 +64,25 @@ export function filterBookingRows(rows, tab) {
   });
 }
 
+function normalizeCouponState(item) {
+  if (item.status === "USED") return "USED";
+  if (item.isUsable) return "ACTIVE";
+  return "EXPIRING";
+}
+
 export function getCouponSummary(rows, filter) {
-  const availableCount = rows.filter((item) => item.isUsable).length;
-  const expiringCount = rows.filter((item) => !item.isUsable && item.status !== "USED").length;
-  const usedCount = rows.filter((item) => item.status === "USED").length;
-  const filteredCoupons = rows.filter((item) => {
-    if (filter === "available") return item.isUsable;
-    if (filter === "used") return item.status === "USED";
-    if (filter === "expiring") return !item.isUsable && item.status !== "USED";
+  const normalizedRows = rows.map((item) => ({
+    ...item,
+    normalizedState: normalizeCouponState(item),
+  }));
+
+  const availableCount = normalizedRows.filter((item) => item.normalizedState === "ACTIVE").length;
+  const expiringCount = normalizedRows.filter((item) => item.normalizedState === "EXPIRING").length;
+  const usedCount = normalizedRows.filter((item) => item.normalizedState === "USED").length;
+  const filteredCoupons = normalizedRows.filter((item) => {
+    if (filter === "available") return item.normalizedState === "ACTIVE";
+    if (filter === "used") return item.normalizedState === "USED";
+    if (filter === "expiring") return item.normalizedState === "EXPIRING";
     return false;
   });
 
@@ -79,12 +90,13 @@ export function getCouponSummary(rows, filter) {
 }
 
 export function getCouponAmount(item) {
-  return item.name.match(/(\d[\d,]*(?:%|원))/)?.[1] ?? "혜택 확인";
+  return item.name.match(/(\d[\d,]*(?:원|%))/)?.[1] ?? "혜택 확인";
 }
 
 export function getCouponToneClass(item) {
-  if (item.isUsable) return "is-available";
-  if (item.status === "USED") return "is-used";
+  const state = normalizeCouponState(item);
+  if (state === "ACTIVE") return "is-available";
+  if (state === "USED") return "is-used";
   return "is-expiring";
 }
 

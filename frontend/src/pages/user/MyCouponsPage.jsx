@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { toUserFacingErrorMessage } from "../../lib/appClient";
@@ -81,9 +81,27 @@ export default function MyCouponsPage() {
           <span>국내 숙소 쿠폰은 TripZone 예약에서 바로 사용할 수 있습니다.</span>
         </div>
         <div className="tab-filter-row" role="tablist" aria-label="쿠폰 필터">
-          <button type="button" className={`tab-filter${filter === "available" ? " is-active" : ""}`} onClick={() => setFilter("available")}>사용 가능</button>
-          <button type="button" className={`tab-filter${filter === "expiring" ? " is-active" : ""}`} onClick={() => setFilter("expiring")}>만료 예정</button>
-          <button type="button" className={`tab-filter${filter === "used" ? " is-active" : ""}`} onClick={() => setFilter("used")}>사용 완료</button>
+          <button
+            type="button"
+            className={`tab-filter${filter === "available" ? " is-active" : ""}`}
+            onClick={() => setFilter("available")}
+          >
+            사용 가능
+          </button>
+          <button
+            type="button"
+            className={`tab-filter${filter === "expiring" ? " is-active" : ""}`}
+            onClick={() => setFilter("expiring")}
+          >
+            만료 예정
+          </button>
+          <button
+            type="button"
+            className={`tab-filter${filter === "used" ? " is-active" : ""}`}
+            onClick={() => setFilter("used")}
+          >
+            사용 완료
+          </button>
         </div>
         <div className="coupon-meta-row">
           <span>{filteredCoupons.length}개 쿠폰</span>
@@ -100,7 +118,9 @@ export default function MyCouponsPage() {
                 <div className="coupon-vault-copy">
                   <div className="payment-row-topline">
                     <span className="coupon-vault-target">{item.target}</span>
-                    <span className={`table-code${item.status === "ACTIVE" ? " code-available" : item.status === "USED" ? " code-closed" : " code-pending"}`}>
+                    <span
+                      className={`table-code${item.status === "ACTIVE" ? " code-available" : item.status === "USED" ? " code-closed" : " code-pending"}`}
+                    >
                       {item.statusLabel}
                     </span>
                   </div>
@@ -110,9 +130,13 @@ export default function MyCouponsPage() {
                 <div className="coupon-vault-side">
                   <strong className="coupon-vault-amount">{getCouponAmount(item)}</strong>
                   {item.status === "ACTIVE" ? (
-                    <Link className="coupon-action-button" to="/lodgings">사용하기</Link>
+                    <Link className="coupon-action-button" to="/lodgings">
+                      사용하기
+                    </Link>
                   ) : (
-                    <span className="coupon-vault-hint">{item.status === "USED" ? "사용 완료 쿠폰" : "곧 만료되는 쿠폰"}</span>
+                    <span className="coupon-vault-hint">
+                      {item.status === "USED" ? "사용 완료 쿠폰" : "곧 만료되는 쿠폰"}
+                    </span>
                   )}
                   <button
                     type="button"
@@ -128,7 +152,11 @@ export default function MyCouponsPage() {
           </div>
         ) : !isLoading ? (
           <div className="my-empty-inline">
-            {filter === "available" ? "사용 가능한 보유 쿠폰이 없습니다." : filter === "used" ? "사용 완료 쿠폰이 없습니다." : "만료 예정 쿠폰이 없습니다."}
+            {filter === "available"
+              ? "사용 가능한 보유 쿠폰이 없습니다."
+              : filter === "used"
+                ? "사용 완료 쿠폰이 없습니다."
+                : "만료 예정 쿠폰이 없습니다."}
           </div>
         ) : null}
       </section>
