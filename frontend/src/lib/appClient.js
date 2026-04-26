@@ -70,7 +70,7 @@ export function toUserFacingErrorMessage(error, fallback = "요청을 처리하�
     return fallback;
   }
 
-  return fallback;
+  return rawMessage;
 }
 
 export function isMockDataSource() {

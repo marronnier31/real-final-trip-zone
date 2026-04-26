@@ -42,7 +42,7 @@ export async function createBookingReservation(payload) {
   return {
     ...booking,
     bookingNo,
-    bookingId: booking.bookingNo ?? bookingNo,
+    bookingId: booking.bookingId ?? (booking.bookingNo != null ? `B-${booking.bookingNo}` : `B-${bookingNo}`),
   };
 }
 

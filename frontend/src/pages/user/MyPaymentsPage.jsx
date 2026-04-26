@@ -2,7 +2,12 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import MyPageLayout from "../../components/user/MyPageLayout";
 import { getPaymentSummary } from "../../features/mypage/mypageViewModels";
-import { getMyBookings, getMyPayments } from "../../services/mypageService";
+import {
+  getCachedMyBookingsSnapshot,
+  getCachedMyPaymentsSnapshot,
+  getMyBookings,
+  getMyPayments,
+} from "../../services/mypageService";
 
 function getPaymentStatusLabel(status) {
   if (status === "PAID") return "결제 완료";
@@ -13,9 +18,11 @@ function getPaymentStatusLabel(status) {
 }
 
 export default function MyPaymentsPage() {
-  const [myBookingRows, setMyBookingRows] = useState([]);
-  const [paymentHistoryRows, setPaymentHistoryRows] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cachedBookings = getCachedMyBookingsSnapshot();
+  const cachedPayments = getCachedMyPaymentsSnapshot();
+  const [myBookingRows, setMyBookingRows] = useState(cachedBookings);
+  const [paymentHistoryRows, setPaymentHistoryRows] = useState(cachedPayments);
+  const [isLoading, setIsLoading] = useState(!(cachedBookings.length && cachedPayments.length));
   const { paidCount, refundedCount, recentPaidAmount, recentRefundedAmount } = getPaymentSummary(paymentHistoryRows);
 
   useEffect(() => {
@@ -23,8 +30,13 @@ export default function MyPaymentsPage() {
 
     async function loadPayments() {
       try {
-        setIsLoading(true);
-        const [bookings, payments] = await Promise.all([getMyBookings(), getMyPayments()]);
+        if (!(cachedBookings.length && cachedPayments.length)) {
+          setIsLoading(true);
+        }
+        const [bookings, payments] = await Promise.all([
+          getMyBookings({ force: true }),
+          getMyPayments({ force: true }),
+        ]);
         if (cancelled) return;
         setMyBookingRows(bookings);
         setPaymentHistoryRows(payments);

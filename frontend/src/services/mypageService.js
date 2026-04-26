@@ -34,6 +34,44 @@ function getProfilePayload(response) {
   return response.summary ?? response;
 }
 
+function mapBookingItem(item) {
+  if (!item) return item;
+
+  return {
+    ...item,
+    id: item.id ?? item.bookingId ?? item.bookingNo,
+    bookingId: item.bookingId ?? (item.bookingNo != null ? `B-${item.bookingNo}` : item.id),
+    bookingNo: item.bookingNo ?? item.id ?? null,
+    name: item.name ?? item.lodgingName ?? "",
+    lodgingName: item.lodgingName ?? item.name ?? "",
+    room: item.room ?? item.roomName ?? "",
+    roomName: item.roomName ?? item.room ?? "",
+    status: item.status ?? item.bookingStatus ?? "PENDING",
+    bookingStatus: item.bookingStatus ?? item.status ?? "PENDING",
+    bookingStatusLabel: item.bookingStatusLabel ?? item.bookingStatus ?? item.status ?? "PENDING",
+    price: item.price ?? (item.totalPrice != null ? `${Number(item.totalPrice).toLocaleString()}원` : ""),
+  };
+}
+
+function mapPaymentItem(item) {
+  if (!item) return item;
+
+  const resolvedStatus = item.status ?? item.paymentStatus ?? "READY";
+
+  return {
+    ...item,
+    id: item.id ?? item.paymentNo ?? item.bookingId ?? item.bookingNo,
+    status: resolvedStatus,
+    paymentStatus: item.paymentStatus ?? resolvedStatus,
+    bookingId: item.bookingId ?? (item.bookingNo != null ? `B-${item.bookingNo}` : item.id),
+    bookingNo: item.bookingNo ?? null,
+    lodgingName: item.lodgingName ?? item.name ?? "",
+    roomName: item.roomName ?? item.room ?? "",
+    amount: item.amount ?? (item.paymentAmount != null ? `${Number(item.paymentAmount).toLocaleString()}원` : "-"),
+    detail: item.detail ?? item.paymentMethodLabel ?? item.payMethod ?? "",
+  };
+}
+
 // Current backend note:
 // Booking/payment can adapt to current backend DTOs.
 // Inquiry must keep design-doc target shape first:
@@ -179,6 +217,22 @@ export function getCachedMyHomeSnapshot() {
   return readMyHomeCache();
 }
 
+export function getCachedMyBookingsSnapshot() {
+  const response = readCachedResource(RESOURCE_KEYS.bookings);
+  if (response === null) {
+    return [];
+  }
+  return getResponseList(response).map(mapBookingItem);
+}
+
+export function getCachedMyPaymentsSnapshot() {
+  const response = readCachedResource(RESOURCE_KEYS.payments);
+  if (response === null) {
+    return [];
+  }
+  return getResponseList(response).map(mapPaymentItem);
+}
+
 export async function getMyHome(options = {}) {
   const cached = readMyHomeCache();
   if (cached && !options.force) {
@@ -229,9 +283,9 @@ export async function withdrawMyAccount() {
   return { ok: true };
 }
 
-export async function getMyBookings() {
-  const response = await fetchCachedResource(RESOURCE_KEYS.bookings, () => get("/api/mypage/bookings"));
-  return getResponseList(response);
+export async function getMyBookings(options = {}) {
+  const response = await fetchCachedResource(RESOURCE_KEYS.bookings, () => get("/api/mypage/bookings"), options);
+  return getResponseList(response).map(mapBookingItem);
 }
 
 export async function getMyBookingById(bookingId) {
@@ -242,9 +296,9 @@ export async function getMyBookingById(bookingId) {
   ) ?? null;
 }
 
-export async function getMyPayments() {
-  const response = await fetchCachedResource(RESOURCE_KEYS.payments, () => get("/api/mypage/payments"));
-  return getResponseList(response);
+export async function getMyPayments(options = {}) {
+  const response = await fetchCachedResource(RESOURCE_KEYS.payments, () => get("/api/mypage/payments"), options);
+  return getResponseList(response).map(mapPaymentItem);
 }
 
 export async function getMyPaymentByBookingId(bookingId) {

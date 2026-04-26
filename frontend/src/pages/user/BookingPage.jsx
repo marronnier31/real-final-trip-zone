@@ -21,7 +21,7 @@ import {
 } from "../../services/bookingService";
 import { toUserFacingErrorMessage } from "../../lib/appClient";
 import { getLodgingDetailById } from "../../services/lodgingService";
-import { fetchMyCoupons, getMyMileage } from "../../services/mypageService";
+import { fetchMyCoupons, getMyMileage, invalidateMyPageCaches } from "../../services/mypageService";
 
 const DEFAULT_COUPON_OPTION = {
   label: "\uCFE0\uD3F0 \uBBF8\uC0AC\uC6A9",
@@ -260,6 +260,11 @@ export default function BookingPage() {
         payMethod: selectedPayment.value,
         pgProvider: selectedPayment.pg,
       });
+
+      invalidateMyPageCaches();
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("tripzone-my-bookings");
+      }
 
       navigate(`/my/bookings/${bookingResponse.bookingId}`);
     } catch (error) {

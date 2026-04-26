@@ -7,24 +7,11 @@ import {
   getBookingTabSummary,
 } from "../../features/mypage/mypageViewModels";
 import { getCachedLodgingsSnapshot, getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
-import { getMyBookings } from "../../services/mypageService";
-
-const MY_BOOKINGS_CACHE_KEY = "tripzone-my-bookings";
-
-function readMyBookingsCache() {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const raw = window.sessionStorage.getItem(MY_BOOKINGS_CACHE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
+import { getCachedMyBookingsSnapshot, getMyBookings } from "../../services/mypageService";
 
 export default function MyBookingsPage() {
   const cachedLodgings = getCachedLodgingsSnapshot();
-  const cachedBookings = readMyBookingsCache();
+  const cachedBookings = getCachedMyBookingsSnapshot();
   const [tab, setTab] = useState("upcoming");
   const [lodgings, setLodgings] = useState(cachedLodgings);
   const [myBookingRows, setMyBookingRows] = useState(cachedBookings);
@@ -42,13 +29,10 @@ export default function MyBookingsPage() {
         if (!(cachedLodgings.length && cachedBookings.length)) {
           setIsLoading(true);
         }
-        const [rows, bookingRows] = await Promise.all([getLodgings(), getMyBookings()]);
+        const [rows, bookingRows] = await Promise.all([getLodgings(), getMyBookings({ force: true })]);
         if (cancelled) return;
         setLodgings(rows);
         setMyBookingRows(bookingRows);
-        if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(MY_BOOKINGS_CACHE_KEY, JSON.stringify(bookingRows));
-        }
       } catch (error) {
         console.error("Failed to load booking lodgings.", error);
       } finally {
