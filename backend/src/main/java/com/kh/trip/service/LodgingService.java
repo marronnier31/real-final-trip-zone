@@ -5,6 +5,7 @@ import java.util.List;
 import com.kh.trip.dto.LodgingDTO;
 import com.kh.trip.dto.PageRequestDTO;
 import com.kh.trip.dto.PageResponseDTO;
+import com.kh.trip.dto.SellerDashboardLodgingSummaryDTO;
 
 public interface LodgingService {
 
@@ -20,6 +21,8 @@ public interface LodgingService {
 
 	// 판매자 본인 숙소 목록 조회
 	List<LodgingDTO> getLodgingsByHostNo(Long hostNo);
+
+	List<SellerDashboardLodgingSummaryDTO> getSellerDashboardLodgingSummaries(Long hostNo);
 
 	// 지역으로 숙소 목록 조회
 	List<LodgingDTO> getLodgingsByRegion(String region);

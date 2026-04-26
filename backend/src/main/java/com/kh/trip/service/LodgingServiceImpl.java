@@ -29,6 +29,7 @@ import com.kh.trip.dto.LodgingDTO;
 import com.kh.trip.dto.PageRequestDTO;
 import com.kh.trip.dto.PageResponseDTO;
 import com.kh.trip.dto.RoomDTO;
+import com.kh.trip.dto.SellerDashboardLodgingSummaryDTO;
 import com.kh.trip.repository.HostProfileRepository;
 import com.kh.trip.repository.LodgingRepository;
 import com.kh.trip.repository.ReviewRepository;
@@ -169,6 +170,30 @@ public class LodgingServiceImpl implements LodgingService {
 				.toList();
 		applyReviewSummaries(dtoList);
 		return dtoList;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<SellerDashboardLodgingSummaryDTO> getSellerDashboardLodgingSummaries(Long hostNo) {
+		List<Lodging> lodgings = lodgingRepository.findByHost_HostNo(hostNo);
+		List<Long> lodgingNos = lodgings.stream().map(Lodging::getLodgingNo).toList();
+		Map<Long, Integer> roomCounts = lodgingNos.isEmpty()
+			? new HashMap<>()
+			: roomRepository.sumRoomCountsByLodgingNos(lodgingNos).stream()
+				.collect(Collectors.toMap(
+					row -> (Long) row[0],
+					row -> ((Number) row[1]).intValue()
+				));
+
+		return lodgings.stream()
+			.map(lodging -> SellerDashboardLodgingSummaryDTO.builder()
+				.lodgingNo(lodging.getLodgingNo())
+				.lodgingName(lodging.getLodgingName())
+				.region(lodging.getRegion())
+				.status(lodging.getStatus())
+				.roomCount(roomCounts.getOrDefault(lodging.getLodgingNo(), 0))
+				.build())
+			.toList();
 	}
 	
 	//숙소 목록 페이징 

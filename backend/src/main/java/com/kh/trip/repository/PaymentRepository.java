@@ -20,6 +20,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 	Page<Payment> findByBooking_BookingNoOrderByPaymentNoDesc(Long bookingNo, Pageable pageable);
 
 	@EntityGraph(attributePaths = { "booking", "booking.room", "booking.room.lodging" })
+	@Query("select p from Payment p where p.booking.user.userNo = :userNo")
+	Page<Payment> findByUserId(@Param("userNo") Long userNo, Pageable pageable);
+
+	@EntityGraph(attributePaths = { "booking", "booking.room", "booking.room.lodging" })
 	@Query("select p from Payment p where p.booking.user.userNo = :userNo order by p.regDate desc")
 	List<Payment> findMypagePayments(@Param("userNo") Long userNo);
 

@@ -16,4 +16,8 @@ public class WishListDTO {
 	private Long userNo;
 	private Long lodgingNo;
 	private LodgingDTO lodgingDTO;
+	private String name;
+	private String meta;
+	private String price;
+	private String status;
 }

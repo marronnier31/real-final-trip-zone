@@ -1,5 +1,6 @@
 package com.kh.trip.service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -52,7 +53,7 @@ public class EventServiceImpl implements EventService {
 
 		Long totalCount = result.getTotalElements();
 
-		return PageResponseDTO.<EventDTO>withAll().dtoList(dtoList) // ?꾩뿉??留뚮뱺 dtoList瑜??댁븘以띾땲??
+		return PageResponseDTO.<EventDTO>withAll().dtoList(dtoList) // 위에서 만든 dtoList를 담아줍니다
 				.totalCount(totalCount).pageRequestDTO(pageRequestDTO).build();
 	}
 
@@ -78,17 +79,26 @@ public class EventServiceImpl implements EventService {
 	public Long save(EventDTO eventDTO) {
 		log.info(".........");
 		User user = userRepository.findById(eventDTO.getAdminUser())
-				.orElseThrow(() -> new IllegalArgumentException("議댁옱?섏? ?딅뒗 愿由ъ옄 踰덊샇?낅땲??"));
+				.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 관리자 번호입니다."));
 
+		LocalDate today = LocalDate.now();
+		LocalDate start = eventDTO.getStartDate().toLocalDate();
+		LocalDate end = eventDTO.getEndDate().toLocalDate();
+
+		EventStatus status =
+		    today.isBefore(start) ? EventStatus.DRAFT :
+		    today.isAfter(end) ? EventStatus.ENDED :
+		    EventStatus.ONGOING;
+		
 		Event event = Event.builder().title(eventDTO.getTitle()).content(eventDTO.getContent())
 				.thumbnailUrl(eventDTO.getThumbnailUrl()).startDate(eventDTO.getStartDate())
-				.endDate(eventDTO.getEndDate()).viewCount(0L).adminUser(user).status(EventStatus.DRAFT).build();
-		// [異붽?] 2. 以묐났 寃??(諛⑹뼱 肄붾뱶)
-		// 媛숈? ?쒕ぉ???대깽?멸? ?대? ?덈뒗吏 ?뺤씤?⑸땲??
+				.endDate(eventDTO.getEndDate()).viewCount(0L).adminUser(user).status(status).build();
+		// [추가] 2. 중복 검사 (방어 코드)
+		// 같은 제목의 이벤트가 이미 있는지 확인합니다.
 		boolean isExist = eventRepository.existsByTitle(eventDTO.getTitle());
 
 		if (isExist) {
-			throw new IllegalStateException("?대? ?숈씪???쒕ぉ???대깽?멸? 議댁옱?⑸땲??");
+			throw new IllegalStateException("이미 동일한 제목의 이벤트가 존재합니다.");
 		}
 		Event savedEvent = eventRepository.save(event);
 		List<Long> coupons = eventDTO.getCoupons();
@@ -107,7 +117,7 @@ public class EventServiceImpl implements EventService {
 	@Override
 	public void update(EventDTO eventDTO) {
 		Optional<Event> result = eventRepository.findById(eventDTO.getEventNo());
-		Event event = result.orElseThrow(() -> new RuntimeException("?대떦 ID ?놁쓬: " + eventDTO.getEventNo()));
+		Event event = result.orElseThrow(() -> new RuntimeException("해당 ID 없음: " + eventDTO.getEventNo()));
 
 		event.changeTitle(eventDTO.getTitle());
 		event.changeContent(eventDTO.getContent());
@@ -117,8 +127,8 @@ public class EventServiceImpl implements EventService {
 		if (eventDTO.getStatus() != null) {
 			event.changeStatus(eventDTO.getStatus());
 		}
-		log.info("DB 議고쉶 ?쒕룄 ID: " + eventDTO.getEventNo());
-		eventRepository.findAll().forEach(e -> log.info("DB???덈뒗 ID: " + e.getEventNo()));
+		log.info("DB 조회 시도 ID: " + eventDTO.getEventNo());
+		eventRepository.findAll().forEach(e -> log.info("DB에 있는 ID: " + e.getEventNo()));
 		eventRepository.save(event);
 	}
 
@@ -126,7 +136,7 @@ public class EventServiceImpl implements EventService {
 	@Override
 	public void delete(Long eventNo) {
 		Optional<Event> result = eventRepository.findById(eventNo);
-		Event event = result.orElseThrow(() -> new RuntimeException("?대떦 ID ?놁쓬: " + eventNo));
+		Event event = result.orElseThrow(() -> new RuntimeException("해당 ID 없음: " + eventNo));
 		event.changeStatus(EventStatus.HIDDEN);
 		eventRepository.save(event);
 	}

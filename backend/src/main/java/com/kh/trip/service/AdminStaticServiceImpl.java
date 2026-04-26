@@ -2,13 +2,17 @@ package com.kh.trip.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kh.trip.domain.enums.BookingStatus;
+import com.kh.trip.dto.AdminMonthlySalesDTO;
 import com.kh.trip.dto.AdminStaticDTO;
 import com.kh.trip.dto.LodgingTypeAmountMonthlyDTO;
 import com.kh.trip.dto.LodgingTypeRatioAllDTO;
@@ -37,7 +41,13 @@ public class AdminStaticServiceImpl implements AdminStaticService {
 				(Double)arr[2]
 				)).collect(Collectors.toList());
 		
-		Double canceledRatio = repository.canceledRatio(BookingStatus.CANCELED);
+		Long totalCount = repository.count();
+		Long canceledCount = repository.countByStatus(BookingStatus.CANCELED);
+		
+		Double ratio = 0.0;
+		if(totalCount > 0) {
+			ratio = (double) canceledCount * 100 / totalCount;
+		}
 		
 		LocalDateTime startDate = LocalDate.now().withDayOfMonth(1).atStartOfDay();
 		LocalDateTime endDate = startDate.plusMonths(1);
@@ -50,8 +60,22 @@ public class AdminStaticServiceImpl implements AdminStaticService {
 		
 		Long monthlyTotalSalesAmount = repository.monthlyTotalSalesAmount(BookingStatus.COMPLETED,startDate,endDate);
 		Long monthlyTotalBookingCount = repository.monthlyTotalBookingCount(BookingStatus.COMPLETED,startDate,endDate);
-		return AdminStaticDTO.builder().lodgingTypeRatioAll(dtoRatioList).canceledRatio(canceledRatio).lodgingTypeAmountMonthly(dtoMonthlyList)
-				.monthlyTotalSalesAmount(monthlyTotalSalesAmount).monthlyTotalBookingCount(monthlyTotalBookingCount).build();
+		
+		LocalDateTime monthlyCharStartDate = YearMonth.now().minusMonths(5).atDay(1).atStartOfDay();
+		List<Object[]> monthlySalesRows = repository.getAdminMonthlySales(monthlyCharStartDate);
+		Map<String, Long> monthlySalesMap = new LinkedHashMap<>();
+		for(int i = 5; i >= 0; i--) {
+			YearMonth month = YearMonth.now().minusMonths(i);
+			monthlySalesMap.put(String.format("%d.%02d", month.getYear(),month.getMonthValue()), 0L);
+		}
+		for(Object[] row : monthlySalesRows) {
+			monthlySalesMap.put(String.valueOf(row[0]), ((Number) row[1]).longValue());
+		}
+		List<AdminMonthlySalesDTO> monthlySales = monthlySalesMap.entrySet().stream().map(entry -> AdminMonthlySalesDTO.builder()
+				.monthLabel(entry.getKey()).salesAmount(entry.getValue()).build()).collect(Collectors.toList());
+		
+		return AdminStaticDTO.builder().lodgingTypeRatioAll(dtoRatioList).canceledRatio(ratio).lodgingTypeAmountMonthly(dtoMonthlyList)
+				.monthlyTotalSalesAmount(monthlyTotalSalesAmount).monthlyTotalBookingCount(monthlyTotalBookingCount).monthlySales(monthlySales).build();
 	}
 
 }

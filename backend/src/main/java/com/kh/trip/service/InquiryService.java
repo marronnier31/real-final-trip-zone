@@ -21,5 +21,7 @@ public interface InquiryService {
 
 	InquiryDTO updateStatus(Long inquiryNo, InquiryStatus status);
 
+	InquiryDTO getMyInquiryDetail(Long userNo, Long inquiryNo);
+
 	
 }

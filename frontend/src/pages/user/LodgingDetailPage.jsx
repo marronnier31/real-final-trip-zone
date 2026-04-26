@@ -142,6 +142,15 @@ export default function LodgingDetailPage() {
     return "seller";
   };
 
+  const getChatBubbleToneByMessage = (message) => {
+    const senderType = String(message?.senderType ?? "").toUpperCase();
+
+    if (senderType === "USER" || senderType === "GUEST" || senderType === "MEMBER") return "guest";
+    if (senderType === "HOST" || senderType === "SELLER" || senderType === "OPERATOR" || senderType === "ADMIN") return "seller";
+
+    return getChatBubbleTone(message?.sender);
+  };
+
   useEffect(() => {
     if (location.hash !== "#reviews") return;
     const timer = window.setTimeout(() => {
@@ -804,7 +813,7 @@ export default function LodgingDetailPage() {
                 </article>
               ) : null}
               {chatMessages.map((message) => (
-                <article key={message.id} className={`lodging-chat-bubble is-${getChatBubbleTone(message.sender)}`}>
+                <article key={message.id} className={`lodging-chat-bubble is-${getChatBubbleToneByMessage(message)}`}>
                   <span className="lodging-chat-time">{message.time}</span>
                   <p>{message.body}</p>
                 </article>

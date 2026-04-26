@@ -24,5 +24,15 @@ public class UserCouponDTO {
 	private LocalDateTime issuedAt;
 	private LocalDateTime usedAt;
 	private CouponStatus status;
+	private String couponName;
+	private String couponType;
+	private Long discountValue;
+	private String discountLabel;
+	private String statusLabel;
+	private String expire;
+	private String expiredAt;
+	private String target;
+	private String appliesTo;
+	private boolean usable;
 
 }

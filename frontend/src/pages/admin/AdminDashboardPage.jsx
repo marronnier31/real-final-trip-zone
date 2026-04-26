@@ -19,13 +19,15 @@ function readAdminDashboardCache() {
 
 export default function AdminDashboardPage() {
   const cachedSnapshot = readAdminDashboardCache();
-  const [snapshot, setSnapshot] = useState(cachedSnapshot ?? {
-    users: [],
-    sellers: [],
-    adminInquiries: [],
-    auditLogs: [],
-    adminTasks: [],
-  });
+  const [snapshot, setSnapshot] = useState(
+    cachedSnapshot ?? {
+      users: [],
+      sellers: [],
+      adminInquiries: [],
+      auditLogs: [],
+      adminTasks: [],
+    },
+  );
   const [notice, setNotice] = useState("");
   const [isLoading, setIsLoading] = useState(!cachedSnapshot);
   const vm = getAdminDashboardViewModel(snapshot);
@@ -42,7 +44,10 @@ export default function AdminDashboardPage() {
         if (cancelled) return;
         setSnapshot(nextSnapshot);
         if (typeof window !== "undefined") {
-          window.sessionStorage.setItem(ADMIN_DASHBOARD_CACHE_KEY, JSON.stringify(nextSnapshot));
+          window.sessionStorage.setItem(
+            ADMIN_DASHBOARD_CACHE_KEY,
+            JSON.stringify(nextSnapshot),
+          );
         }
         setNotice("");
       } catch (error) {
@@ -100,18 +105,32 @@ export default function AdminDashboardPage() {
             : "normal",
     }));
 
-  const pendingSellers = vm.metrics.find((item) => item.label === "승인 대기 판매자")?.value ?? "00";
-  const openInquiries = vm.metrics.find((item) => item.label === "미답변 문의")?.value ?? "00";
-  const totalUsers = vm.metrics.find((item) => item.label === "전체 회원")?.value ?? "00";
-  const totalSellers = vm.metrics.find((item) => item.label === "전체 판매자")?.value ?? "00";
-  const blockedUsers = vm.facts.find((item) => item.label === "차단 회원")?.value ?? "00";
-  const dormantUsers = vm.facts.find((item) => item.label === "휴면 회원")?.value ?? "00";
+  const pendingSellers =
+    vm.metrics.find((item) => item.label === "승인 대기 판매자")?.value ?? "00";
+  const openInquiries =
+    vm.metrics.find((item) => item.label === "미답변 문의")?.value ?? "00";
+  const totalUsers =
+    vm.metrics.find((item) => item.label === "전체 회원")?.value ?? "00";
+  const totalSellers =
+    vm.metrics.find((item) => item.label === "전체 판매자")?.value ?? "00";
+  const blockedUsers =
+    vm.facts.find((item) => item.label === "차단 회원")?.value ?? "00";
+  const dormantUsers =
+    vm.facts.find((item) => item.label === "휴면 회원")?.value ?? "00";
 
   const kpiRows = [
     { label: "전체 회원", value: `${totalUsers}명`, tone: "normal" },
     { label: "전체 판매자", value: `${totalSellers}명`, tone: "normal" },
-    { label: "승인 대기 판매자", value: `${pendingSellers}건`, tone: Number(pendingSellers) > 0 ? "warning" : "normal" },
-    { label: "미답변 문의", value: `${openInquiries}건`, tone: Number(openInquiries) > 0 ? "danger" : "normal" },
+    {
+      label: "승인 대기 판매자",
+      value: `${pendingSellers}건`,
+      tone: Number(pendingSellers) > 0 ? "warning" : "normal",
+    },
+    {
+      label: "미답변 문의",
+      value: `${openInquiries}건`,
+      tone: Number(openInquiries) > 0 ? "danger" : "normal",
+    },
   ];
 
   const operationRows = [
@@ -134,30 +153,35 @@ export default function AdminDashboardPage() {
       tone: Number(blockedUsers) > 0 ? "warning" : "normal",
     },
   ];
-  const monthlySales = [
-    { monthLabel: "2025.11", salesAmount: 42800000 },
-    { monthLabel: "2025.12", salesAmount: 51200000 },
-    { monthLabel: "2026.01", salesAmount: 46700000 },
-    { monthLabel: "2026.02", salesAmount: 53800000 },
-    { monthLabel: "2026.03", salesAmount: 62100000 },
-    { monthLabel: "2026.04", salesAmount: 58400000 },
-  ];
-  const maxMonthlySales = Math.max(...monthlySales.map((item) => item.salesAmount), 1);
+  const monthlySales = snapshot.monthlySales ?? [];
+  const maxMonthlySales = Math.max(
+    ...monthlySales.map((item) => item.salesAmount),
+    1,
+  );
 
   return (
     <DashboardLayout role="admin">
       <div className="seller-board">
-        {isLoading ? <div className="my-empty-inline">관리자 대시보드를 불러오는 중입니다.</div> : null}
+        {isLoading ? (
+          <div className="my-empty-inline">
+            관리자 대시보드를 불러오는 중입니다.
+          </div>
+        ) : null}
         {notice ? <div className="my-empty-inline">{notice}</div> : null}
 
         <div className="seller-saas-board">
           <div className="saas-header">
             <div className="saas-kpis">
               {kpiRows.map((item) => (
-                <div key={item.label} className={`saas-kpi-card tone-${item.tone}`}>
+                <div
+                  key={item.label}
+                  className={`saas-kpi-card tone-${item.tone}`}
+                >
                   <div className="kpi-header">
                     <span className="kpi-label">{item.label}</span>
-                    {item.tone !== "normal" ? <span className="kpi-status-dot" aria-label={item.tone} /> : null}
+                    {item.tone !== "normal" ? (
+                      <span className="kpi-status-dot" aria-label={item.tone} />
+                    ) : null}
                   </div>
                   <strong className="kpi-value">{item.value}</strong>
                 </div>
@@ -176,14 +200,20 @@ export default function AdminDashboardPage() {
                     <div className="chart-bar-bg">
                       <div
                         className="chart-bar-fill"
-                        style={{ height: `${Math.max((item.salesAmount / maxMonthlySales) * 100, item.salesAmount > 0 ? 8 : 0)}%` }}
+                        style={{
+                          height: `${Math.max((item.salesAmount / maxMonthlySales) * 100, item.salesAmount > 0 ? 8 : 0)}%`,
+                        }}
                       >
                         <span className="chart-value-float">
-                          {item.salesAmount > 0 ? `${Math.round(item.salesAmount / 10000)}만` : "-"}
+                          {item.salesAmount > 0
+                            ? `${Math.round(item.salesAmount / 10000)}만`
+                            : "-"}
                         </span>
                       </div>
                     </div>
-                    <span className="chart-month-label">{item.monthLabel.slice(5)}</span>
+                    <span className="chart-month-label">
+                      {item.monthLabel.slice(5)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -194,34 +224,48 @@ export default function AdminDashboardPage() {
             <section className="saas-bento-panel panel-tasks">
               <div className="saas-bento-head">
                 <strong>운영 루틴</strong>
-                <Link to="/admin/inquiries" className="saas-link">업무 전체 보기</Link>
+                <Link to="/admin/inquiries" className="saas-link">
+                  업무 전체 보기
+                </Link>
               </div>
               <div className="saas-task-list">
-                {(vm.checklist ?? []).length ? (
-                  vm.checklist.slice(0, 4).map((item, index) => (
-                    <article key={`${item.title ?? item.label ?? "task"}-${index}`} className="saas-task-row tone-normal">
-                      <div className="task-content">
-                        <div className="task-meta">
-                          <span className="task-badge">운영 루틴</span>
+                {(vm.checklist ?? []).length
+                  ? vm.checklist.slice(0, 4).map((item, index) => (
+                      <article
+                        key={`${item.title ?? item.label ?? "task"}-${index}`}
+                        className="saas-task-row tone-normal"
+                      >
+                        <div className="task-content">
+                          <div className="task-meta">
+                            <span className="task-badge">운영 루틴</span>
+                          </div>
+                          <strong>
+                            {item.title ?? item.label ?? "체크리스트 항목"}
+                          </strong>
+                          <p>
+                            {item.description ??
+                              item.note ??
+                              "운영 루틴을 확인해 주세요."}
+                          </p>
                         </div>
-                        <strong>{item.title ?? item.label ?? "체크리스트 항목"}</strong>
-                        <p>{item.description ?? item.note ?? "운영 루틴을 확인해 주세요."}</p>
-                      </div>
-                    </article>
-                  ))
-                ) : (
-                  operationRows.map((item) => (
-                    <article key={item.title} className={`saas-task-row tone-${item.tone}`}>
-                      <div className="task-content">
-                        <div className="task-meta">
-                          <span className={`task-badge tone-${item.tone}`}>{item.title}</span>
+                      </article>
+                    ))
+                  : operationRows.map((item) => (
+                      <article
+                        key={item.title}
+                        className={`saas-task-row tone-${item.tone}`}
+                      >
+                        <div className="task-content">
+                          <div className="task-meta">
+                            <span className={`task-badge tone-${item.tone}`}>
+                              {item.title}
+                            </span>
+                          </div>
+                          <strong>{item.value}</strong>
+                          <p>{item.note}</p>
                         </div>
-                        <strong>{item.value}</strong>
-                        <p>{item.note}</p>
-                      </div>
-                    </article>
-                  ))
-                )}
+                      </article>
+                    ))}
               </div>
             </section>
 
@@ -232,16 +276,25 @@ export default function AdminDashboardPage() {
               <div className="saas-feed-list">
                 {vm.attentionUsers.length ? (
                   vm.attentionUsers.map((item) => (
-                    <article key={`${item.name}-${item.email}`} className={`saas-feed-item tone-${item.status === "BLOCKED" ? "danger" : "warning"}`}>
+                    <article
+                      key={`${item.name}-${item.email}`}
+                      className={`saas-feed-item tone-${item.status === "BLOCKED" ? "danger" : "warning"}`}
+                    >
                       <div className="feed-info">
                         <span className="feed-title">{item.name}</span>
-                        <p className="feed-note">{item.role} · {item.email}</p>
+                        <p className="feed-note">
+                          {item.role} · {item.email}
+                        </p>
                       </div>
-                      <strong className="feed-val">{item.status === "BLOCKED" ? "차단" : "휴면"}</strong>
+                      <strong className="feed-val">
+                        {item.status === "BLOCKED" ? "차단" : "휴면"}
+                      </strong>
                     </article>
                   ))
                 ) : (
-                  <div className="saas-empty">지금 확인할 위험 회원이 없습니다.</div>
+                  <div className="saas-empty">
+                    지금 확인할 위험 회원이 없습니다.
+                  </div>
                 )}
               </div>
             </section>
@@ -252,7 +305,10 @@ export default function AdminDashboardPage() {
               </div>
               <div className="saas-lodging-list">
                 {vm.header.links.map((item) => (
-                  <article key={item.to} className="saas-lodging-row tone-normal">
+                  <article
+                    key={item.to}
+                    className="saas-lodging-row tone-normal"
+                  >
                     <div className="lodging-content">
                       <strong>{item.label}</strong>
                       <div className="lodging-meta">
@@ -260,7 +316,9 @@ export default function AdminDashboardPage() {
                         <span>{item.to}</span>
                       </div>
                     </div>
-                    <Link to={item.to} className="saas-btn-ghost">바로 이동</Link>
+                    <Link to={item.to} className="saas-btn-ghost">
+                      바로 이동
+                    </Link>
                   </article>
                 ))}
                 <article className="saas-lodging-row tone-normal">
@@ -271,7 +329,9 @@ export default function AdminDashboardPage() {
                       <span>{dormantUsers}명</span>
                     </div>
                   </div>
-                  <Link to="/admin/users" className="saas-btn-ghost">회원 관리</Link>
+                  <Link to="/admin/users" className="saas-btn-ghost">
+                    회원 관리
+                  </Link>
                 </article>
               </div>
             </section>

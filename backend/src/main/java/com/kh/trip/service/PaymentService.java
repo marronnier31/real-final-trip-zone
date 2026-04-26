@@ -10,6 +10,8 @@ public interface PaymentService {
 
 	PageResponseDTO<PaymentDTO> getPaymentsByBooking(Long bookingNo, Long userNo, PageRequestDTO pageRequestDTO);
 
+	PageResponseDTO<PaymentDTO> findByUserId(Long userNo, PageRequestDTO pageRequestDTO);
+
 	PaymentDTO getPaymentById(Long paymentNo, Long userNo);
 
 	void complete(Long paymentNo);

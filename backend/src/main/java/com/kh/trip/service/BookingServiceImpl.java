@@ -1,9 +1,14 @@
 package com.kh.trip.service;
 
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -35,6 +40,9 @@ import com.kh.trip.dto.BookingDTO;
 import com.kh.trip.dto.PageRequestDTO;
 import com.kh.trip.dto.PageResponseDTO;
 import com.kh.trip.dto.SellerLodgingSalesDTO;
+import com.kh.trip.dto.SellerLodgingTypeRatioDTO;
+import com.kh.trip.dto.SellerLodgingTypeSalesDTO;
+import com.kh.trip.dto.SellerMonthlySalesDTO;
 import com.kh.trip.dto.SellerSalesSummaryDTO;
 import com.kh.trip.repository.BookingRepository;
 import com.kh.trip.repository.MemberGradeRepository;
@@ -52,6 +60,8 @@ import lombok.extern.log4j.Log4j2;
 @Transactional
 @Log4j2
 public class BookingServiceImpl implements BookingService {
+
+	private static final NumberFormat NUMBER_FORMAT = NumberFormat.getNumberInstance(Locale.KOREA);
 
 	// 이미 있는 결제 취소 로직을 그대로 사용하려고 주입한 service
 	private final PaymentService paymentService;
@@ -84,11 +94,15 @@ public class BookingServiceImpl implements BookingService {
 			throw new IllegalArgumentException("선택하신 날짜로는 예약이 불가한 객실입니다.");
 		}
 
+		if(bookingDTO.getGuestCount() > room.getMaxGuestCount()) {
+			throw new IllegalArgumentException("객실 최대 수용인원을 초과하셨습니다.");
+		}
+		
 		// 숙박 일수 계산 (체크아웃 날짜 - 체크인 날짜)
 		Long daysBetween = ChronoUnit.DAYS.between(bookingDTO.getCheckInDate().toLocalDate(),
 				bookingDTO.getCheckOutDate().toLocalDate());
 		Long roomPrice = room.getPricePerNight() * daysBetween;
-		Long totalPrice = roomPrice;
+		Long totalPrice = roomPrice * bookingDTO.getGuestCount();
 		Long discountAmount = 0L;
 
 		UserCoupon userCoupon = null;
@@ -113,7 +127,7 @@ public class BookingServiceImpl implements BookingService {
 			totalPrice = discountedPrice;
 		}
 
-		Long requestedMileage = bookingDTO.getMileage() == null ? 0L : bookingDTO.getMileage();
+		Long requestedMileage = bookingDTO.getMileageUsed() == null ? 0L : bookingDTO.getMileageUsed();
 		if (requestedMileage < 0) {
 			throw new IllegalArgumentException("마일리지는 0 이상이어야 합니다.");
 		}
@@ -127,7 +141,7 @@ public class BookingServiceImpl implements BookingService {
 		totalPrice -= mileageUsed;
 
 		discountAmount = couponDiscountAmount + mileageUsed;
-		Booking booking = Booking.builder().user(user).userCoupon(userCoupon).room(room).mileage(mileageUsed)
+		Booking booking = Booking.builder().user(user).userCoupon(userCoupon).room(room).mileageUsed(mileageUsed)
 				.checkInDate(bookingDTO.getCheckInDate()).checkOutDate(bookingDTO.getCheckOutDate())
 				.guestCount(bookingDTO.getGuestCount()).pricePerNight(Long.valueOf(room.getPricePerNight()))
 				.discountAmount(discountAmount).totalPrice(totalPrice)
@@ -275,22 +289,44 @@ public class BookingServiceImpl implements BookingService {
 				.roomName(booking.getRoom().getRoomName()).checkInDate(booking.getCheckInDate())
 				.checkOutDate(booking.getCheckOutDate()).guestCount(booking.getGuestCount())
 				.pricePerNight(booking.getPricePerNight()).discountAmount(booking.getDiscountAmount())
+				.mileageUsed(booking.getMileageUsed())
 				.totalPrice(booking.getTotalPrice()).status(booking.getStatus())
-				.requestMessage(booking.getRequestMessage()).regDate(booking.getRegDate()).build())
+				.requestMessage(booking.getRequestMessage()).regDate(booking.getRegDate())
+				.bookingId("B-" + booking.getBookingNo())
+				.lodgingId(booking.getRoom().getLodging().getLodgingNo())
+				.stay(formatStay(booking.getCheckInDate(), booking.getCheckOutDate()))
+				.bookingStatus(booking.getStatus().name())
+				.bookingStatusLabel(booking.getStatus().name())
+				.price(formatWon(defaultLong(booking.getTotalPrice())))
+				.canCancel(booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.CONFIRMED)
+				.canReview(booking.getStatus() == BookingStatus.COMPLETED)
+				.canViewPayment(paymentRepository.findFirstByBooking_BookingNoOrderByPaymentNoDesc(booking.getBookingNo()).isPresent())
+				.build())
 				.collect(Collectors.toList());
 	}
 
 	public BookingDTO entityToDTO(Long bookingNo) {
 		Optional<Booking> result = repository.findById(bookingNo);
 		Booking booking = result.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예약번호입니다."));
-		return BookingDTO.builder().bookingNo(booking.getBookingNo()).userNo(booking.getUser().getUserNo()).userName(booking.getUser().getUserName())
+		return BookingDTO.builder().bookingNo(booking.getBookingNo()).userNo(booking.getUser().getUserNo())
 				.roomNo(booking.getRoom().getRoomNo()).lodgingName(booking.getRoom().getLodging().getLodgingName())
 				.userCouponNo(booking.getUserCoupon() != null ? booking.getUserCoupon().getUserCouponNo() : null)
 				.roomName(booking.getRoom().getRoomName()).checkInDate(booking.getCheckInDate())
 				.checkOutDate(booking.getCheckOutDate()).guestCount(booking.getGuestCount())
 				.pricePerNight(booking.getPricePerNight()).discountAmount(booking.getDiscountAmount())
+				.mileageUsed(booking.getMileageUsed())
 				.totalPrice(booking.getTotalPrice()).status(booking.getStatus())
-				.requestMessage(booking.getRequestMessage()).regDate(booking.getRegDate()).build();
+				.requestMessage(booking.getRequestMessage()).regDate(booking.getRegDate())
+				.bookingId("B-" + booking.getBookingNo())
+				.lodgingId(booking.getRoom().getLodging().getLodgingNo())
+				.stay(formatStay(booking.getCheckInDate(), booking.getCheckOutDate()))
+				.bookingStatus(booking.getStatus().name())
+				.bookingStatusLabel(booking.getStatus().name())
+				.price(formatWon(defaultLong(booking.getTotalPrice())))
+				.canCancel(booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.CONFIRMED)
+				.canReview(booking.getStatus() == BookingStatus.COMPLETED)
+				.canViewPayment(paymentRepository.findFirstByBooking_BookingNoOrderByPaymentNoDesc(booking.getBookingNo()).isPresent())
+				.build();
 	}
 
 	@Override
@@ -360,10 +396,19 @@ public class BookingServiceImpl implements BookingService {
 	@Transactional(readOnly = true)
 	public SellerSalesSummaryDTO getSellerSalesSummary(Long hostNo) {
 		List<Object[]> rows = repository.getSellerSalesSummary(hostNo);
+		long totalBookings = repository.countSellerBookings(hostNo);
+		long canceledBookings = repository.countSellerBookingsByStatus(hostNo, BookingStatus.CANCELED);
+		List<Object[]> lodgingTypeCountRows = repository.getSellerLodgingTypeCounts(hostNo);
+		List<Object[]> lodgingTypeSalesRows = repository.getSellerLodgingTypeSales(hostNo);
+		List<Object[]> monthlyRows = repository.getSellerMonthlySales(hostNo,
+				YearMonth.now().minusMonths(5).atDay(1).atStartOfDay());
 
 		long totalSalesAmount = 0L;
 		long totalBookingCount = 0L;
 		List<SellerLodgingSalesDTO> lodgingSales = new ArrayList<>();
+		List<SellerLodgingTypeRatioDTO> lodgingTypeRatios = new ArrayList<>();
+		List<SellerLodgingTypeSalesDTO> lodgingTypeSales = new ArrayList<>();
+		List<SellerMonthlySalesDTO> monthlySales = new ArrayList<>();
 
 		for (Object[] row : rows) {
 			Long lodgingNo = ((Number) row[0]).longValue();
@@ -378,7 +423,59 @@ public class BookingServiceImpl implements BookingService {
 					.salesAmount(salesAmount).bookingCount(bookingCount).build());
 		}
 
+		for (Object[] row : lodgingTypeCountRows) {
+			lodgingTypeRatios.add(SellerLodgingTypeRatioDTO.builder()
+					.lodgingType(String.valueOf(row[0]))
+					.lodgingCount(((Number) row[1]).longValue())
+					.build());
+		}
+
+		for (Object[] row : lodgingTypeSalesRows) {
+			lodgingTypeSales.add(SellerLodgingTypeSalesDTO.builder()
+					.lodgingType(String.valueOf(row[0]))
+					.salesAmount(((Number) row[1]).longValue())
+					.bookingCount(((Number) row[2]).longValue())
+					.build());
+		}
+
+		Map<String, Long> monthlySalesMap = new LinkedHashMap<>();
+		for (int i = 5; i >= 0; i--) {
+			YearMonth month = YearMonth.now().minusMonths(i);
+			monthlySalesMap.put(String.format("%d.%02d", month.getYear(), month.getMonthValue()), 0L);
+		}
+		for (Object[] row : monthlyRows) {
+			monthlySalesMap.put(String.valueOf(row[0]), ((Number) row[1]).longValue());
+		}
+		for (Map.Entry<String, Long> entry : monthlySalesMap.entrySet()) {
+			monthlySales.add(SellerMonthlySalesDTO.builder()
+					.monthLabel(entry.getKey())
+					.salesAmount(entry.getValue())
+					.build());
+		}
+
+		double canceledRatio = totalBookings == 0 ? 0D : (double) canceledBookings / (double) totalBookings;
+
 		return SellerSalesSummaryDTO.builder().totalSalesAmount(totalSalesAmount).totalBookingCount(totalBookingCount)
-				.lodgingSales(lodgingSales).build();
+				.canceledRatio(canceledRatio)
+				.lodgingTypeRatios(lodgingTypeRatios)
+				.lodgingSales(lodgingSales)
+				.lodgingTypeSales(lodgingTypeSales)
+				.monthlySales(monthlySales)
+				.build();
+	}
+
+	private String formatStay(LocalDateTime checkIn, LocalDateTime checkOut) {
+		if (checkIn == null || checkOut == null) {
+			return null;
+		}
+		return checkIn.toLocalDate() + " - " + checkOut.toLocalDate();
+	}
+
+	private String formatWon(long amount) {
+		return NUMBER_FORMAT.format(amount) + "원";
+	}
+
+	private long defaultLong(Long value) {
+		return value != null ? value : 0L;
 	}
 }

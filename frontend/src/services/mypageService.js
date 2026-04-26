@@ -1,8 +1,14 @@
-import { del, get, patch, post } from "../lib/appClient";
+ï»¿import { del, get, patch, post } from "../lib/appClient";
 import { readAuthSession } from "../features/auth/authSession";
 
 function isPercentDiscountType(value) {
-  return value === "PERCENT" || value === "RATE" || String(value ?? "").toLowerCase() === "percent";
+  return value === "PERCENT" || String(value ?? "").toLowerCase() === "percent";
+}
+
+function formatCouponDiscountLabel(discountType, discountValue) {
+  return isPercentDiscountType(discountType)
+    ? `${discountValue}%`
+    : `${Number(discountValue ?? 0).toLocaleString()}\uC6D0`;
 }
 let myCouponSnapshot = [];
 let myHomeMemoryCache = null;
@@ -18,6 +24,15 @@ const RESOURCE_KEYS = {
   mileage: "tripzone-my-mileage",
   wishlist: "tripzone-my-wishlist",
 };
+
+function getResponseList(response) {
+  return response?.items ?? response?.dtoList ?? [];
+}
+
+function getProfilePayload(response) {
+  if (!response) return null;
+  return response.summary ?? response;
+}
 
 // Current backend note:
 // Booking/payment can adapt to current backend DTOs.
@@ -81,7 +96,7 @@ function writeCachedResource(baseKey, value) {
   try {
     window.sessionStorage.setItem(scopedKey, JSON.stringify(value));
   } catch {
-    // ?¸ì…˜ ?€???¤íŒ¨??ë©”ëª¨ë¦?ìºì‹œë¡??€ì²´í•œ??
+    // ?ï¿½ì…˜ ?ï¿½???ï¿½íŒ¨??ë©”ëª¨ï¿½?ìºì‹œï¿½??ï¿½ì²´í•œ??
   }
 }
 
@@ -97,7 +112,7 @@ function invalidateCachedResource(baseKey) {
   try {
     window.sessionStorage.removeItem(scopedKey);
   } catch {
-    // ?¸ì…˜ ?€?¥ì†Œ ?‘ê·¼ ?¤íŒ¨??ë¬´ì‹œ?œë‹¤.
+    // ?ï¿½ì…˜ ?ï¿½?ï¿½ì†Œ ?ï¿½ê·¼ ?ï¿½íŒ¨??ë¬´ì‹œ?ï¿½ë‹¤.
   }
 }
 
@@ -135,7 +150,7 @@ function writeMyHomeCache(response) {
   try {
     window.sessionStorage.setItem(MY_HOME_CACHE_KEY, JSON.stringify(response));
   } catch {
-    // ?¸ì…˜ ?€???¤íŒ¨ ??ë©”ëª¨ë¦?ìºì‹œë§??¬ìš©?œë‹¤.
+    // ?ï¿½ì…˜ ?ï¿½???ï¿½íŒ¨ ??ë©”ëª¨ï¿½?ìºì‹œï¿½??ï¿½ìš©?ï¿½ë‹¤.
   }
 }
 
@@ -150,7 +165,7 @@ export function invalidateMyHomeCache() {
   try {
     window.sessionStorage.removeItem(MY_HOME_CACHE_KEY);
   } catch {
-    // ?¸ì…˜ ?€?¥ì†Œ ?‘ê·¼ ?¤íŒ¨??ë¬´ì‹œ?œë‹¤.
+    // ?ï¿½ì…˜ ?ï¿½?ï¿½ì†Œ ?ï¿½ê·¼ ?ï¿½íŒ¨??ë¬´ì‹œ?ï¿½ë‹¤.
   }
 }
 
@@ -186,12 +201,12 @@ export async function getMyHome(options = {}) {
 
 export async function getMyProfileSummary() {
   const response = await fetchCachedResource(RESOURCE_KEYS.profile, () => get("/api/mypage/profile"));
-  return response.summary;
+  return getProfilePayload(response);
 }
 
 export async function getMyProfileDetails() {
   const response = await fetchCachedResource(RESOURCE_KEYS.profile, () => get("/api/mypage/profile"));
-  return response.details ?? [];
+  return getProfilePayload(response)?.details ?? [];
 }
 
 export async function changeMyPassword(nextPassword, confirmPassword) {
@@ -206,7 +221,7 @@ export async function changeMyPassword(nextPassword, confirmPassword) {
 export async function withdrawMyAccount() {
   const session = readAuthSession();
   if (!session?.userNo) {
-    throw new Error("ë¡œê·¸???•ë³´ê°€ ?†ìŠµ?ˆë‹¤.");
+    throw new Error("ë¡œê·¸???ï¿½ë³´ê°€ ?ï¿½ìŠµ?ï¿½ë‹¤.");
   }
 
   await patch(`/api/users/${session.userNo}/delete`);
@@ -216,7 +231,7 @@ export async function withdrawMyAccount() {
 
 export async function getMyBookings() {
   const response = await fetchCachedResource(RESOURCE_KEYS.bookings, () => get("/api/mypage/bookings"));
-  return response.items ?? [];
+  return getResponseList(response);
 }
 
 export async function getMyBookingById(bookingId) {
@@ -229,7 +244,7 @@ export async function getMyBookingById(bookingId) {
 
 export async function getMyPayments() {
   const response = await fetchCachedResource(RESOURCE_KEYS.payments, () => get("/api/mypage/payments"));
-  return response.items ?? [];
+  return getResponseList(response);
 }
 
 export async function getMyPaymentByBookingId(bookingId) {
@@ -241,17 +256,18 @@ export async function getMyPaymentByBookingId(bookingId) {
 }
 
 function resolveCouponTarget(name = "") {
-  if (name.includes("Á¦ÁÖ")) return "Á¦ÁÖ ¼÷¼Ò";
-  if (name.includes("µµ½É")) return "µµ½É ¼÷¼Ò";
-  if (name.includes("±¹³»")) return "±¹³» ¼÷¼Ò";
-  if (name.includes("Ã¹±¸¸Å")) return "Ã¹ ¿¹¾à ¼÷¼Ò";
-  return "ÀüÃ¼ ¼÷¼Ò";
+  const lowerName = String(name).toLowerCase();
+  if (lowerName.includes("spring")) return "? ?? ??";
+  if (lowerName.includes("summer")) return "?? ?? ??";
+  if (lowerName.includes("fall") || lowerName.includes("autumn")) return "?? ?? ??";
+  if (lowerName.includes("first")) return "? ?? ??";
+  return "?? ??";
 }
 
 function toCouponStatusLabel(status) {
-  if (status === "ACTIVE") return "»ç¿ë °¡´É";
-  if (status === "USED") return "»ç¿ë ¿Ï·á";
-  return "¸¸·á ¿¹Á¤";
+  if (status === "ACTIVE") return "?? ??";
+  if (status === "USED") return "?? ??";
+  return "?? ??";
 }
 
 function formatDateValue(value) {
@@ -262,10 +278,10 @@ function formatDateValue(value) {
 }
 
 function formatExpiryLabel(value, status) {
-  if (status === "USED") return "»ç¿ë ¿Ï·á";
+  if (status === "USED") return "?? ??";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} ¸¸·á`;
+  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} ??`;
 }
 
 function mapUserCouponDto(dto) {
@@ -280,7 +296,7 @@ function mapUserCouponDto(dto) {
     name: coupon.couponName,
     couponType: coupon.discountType,
     discountValue: coupon.discountValue,
-    discountLabel: isPercentDiscountType(coupon.discountType) ? `${coupon.discountValue}%` : `${Number(coupon.discountValue ?? 0).toLocaleString()}¿ø`,
+    discountLabel: formatCouponDiscountLabel(coupon.discountType, coupon.discountValue),
     status: couponStatus,
     statusLabel: toCouponStatusLabel(couponStatus),
     expire: formatExpiryLabel(coupon.endDate, dto.status),
@@ -298,19 +314,19 @@ function normalizeCouponStatus(item) {
   }
 
   const raw = `${item?.status ?? ""} ${item?.statusLabel ?? ""}`.toUpperCase();
-  if (raw.includes("USED") || raw.includes("¿Ï·á")) {
+  if (raw.includes("USED") || raw.includes("?? ??".toUpperCase())) {
     return "USED";
   }
-  if (raw.includes("ACTIVE") || raw.includes("°¡´É")) {
+  if (raw.includes("ACTIVE") || raw.includes("?? ??".toUpperCase())) {
     return "ACTIVE";
   }
   return "EXPIRING";
 }
 
 function toCouponStatusDisplay(status) {
-  if (status === "ACTIVE") return "»ç¿ë °¡´É";
-  if (status === "USED") return "»ç¿ë ¿Ï·á";
-  return "¸¸·á ¿¹Á¤";
+  if (status === "ACTIVE") return "?? ??";
+  if (status === "USED") return "?? ??";
+  return "?? ??";
 }
 
 function mapMyCouponItem(item) {
@@ -322,11 +338,7 @@ function mapMyCouponItem(item) {
     name: item.name ?? item.couponName,
     couponType: item.couponType,
     discountValue: item.discountValue,
-    discountLabel:
-      item.discountLabel ??
-      (isPercentDiscountType(item.couponType)
-        ? `${item.discountValue}%`
-        : `${Number(item.discountValue ?? 0).toLocaleString()}¿ø`),
+    discountLabel: formatCouponDiscountLabel(item.couponType, item.discountValue),
     status: normalizedStatus,
     statusLabel: toCouponStatusDisplay(normalizedStatus),
     expire: item.expire ?? "",
@@ -346,7 +358,7 @@ function mapCouponCatalogDto(dto) {
     name: dto.couponName,
     couponType: dto.discountType,
     discountValue: dto.discountValue,
-    discountLabel: isPercentDiscountType(dto.discountType) ? `${dto.discountValue}%` : `${Number(dto.discountValue ?? 0).toLocaleString()}¿ø`, 
+    discountLabel: formatCouponDiscountLabel(dto.discountType, dto.discountValue),
     status: dto.status ?? "EXPIRING",
     statusLabel: toCouponStatusLabel(dto.status),
     expire: formatExpiryLabel(dto.endDate, dto.status),
@@ -365,7 +377,7 @@ export async function fetchCouponCatalog() {
 
 export async function fetchMyCoupons() {
   const response = await fetchCachedResource(RESOURCE_KEYS.coupons, () => get("/api/mypage/coupons"));
-  const rows = (response.items ?? []).map(mapMyCouponItem);
+  const rows = getResponseList(response).map(mapMyCouponItem);
   myCouponSnapshot = rows;
   return rows;
 }
@@ -398,7 +410,7 @@ export async function getMyMileage() {
 
 export async function getMyWishlist() {
   const response = await fetchCachedResource(RESOURCE_KEYS.wishlist, () => get("/api/mypage/wishlist"));
-  return response.items ?? [];
+  return getResponseList(response);
 }
 
 export async function toggleMyWishlist(lodgingId) {
@@ -423,8 +435,8 @@ export function getMyInquiryThreads() {
       type: item.type,
       status: item.status,
       bookingNo: item.bookingNo ?? "-",
-      lodging: item.lodging ?? "¿î¿µ ¹®ÀÇ",
-      updatedAt: item.updatedAt || "¹æ±Ý Àü",
+      lodging: item.lodging ?? "ï¿½î¿µ ï¿½ï¿½ï¿½ï¿½",
+      updatedAt: item.updatedAt || "ï¿½ï¿½ï¿½ ï¿½ï¿½",
     })),
   );
 }
@@ -436,8 +448,8 @@ export function getMyInquiryThreadById(threadId) {
     type: thread.type,
     status: thread.status,
     bookingNo: thread.bookingNo ?? "-",
-    lodging: thread.lodging ?? "¿î¿µ ¹®ÀÇ",
-    updatedAt: thread.updatedAt || "¹æ±Ý Àü",
+    lodging: thread.lodging ?? "ï¿½î¿µ ï¿½ï¿½ï¿½ï¿½",
+    updatedAt: thread.updatedAt || "ï¿½ï¿½ï¿½ ï¿½ï¿½",
     messages: thread.messages ?? [],
   }));
 }

@@ -1,28 +1,15 @@
 package com.kh.trip.service;
 
-import com.kh.trip.dto.MypageDTO;
+import com.kh.trip.dto.CodeLabelValueDTO;
 import com.kh.trip.dto.PageRequestDTO;
 import com.kh.trip.dto.PageResponseDTO;
+import com.kh.trip.dto.UserDTO;
 
 public interface MypageService {
 
-	MypageDTO.HomeResponse getHome(Long userNo);
+    UserDTO getProfile(Long userNo);
 
-	MypageDTO.ProfileResponse getProfile(Long userNo);
+    CodeLabelValueDTO getMileage(Long userNo);
 
-	MypageDTO.BookingResponse getBookings(Long userNo);
-
-	MypageDTO.CouponResponse getCoupons(Long userNo);
-
-	MypageDTO.MileageResponse getMileage(Long userNo);
-
-	PageResponseDTO<MypageDTO.MileageItem> getMileageHistory(Long userNo, PageRequestDTO pageRequestDTO);
-
-	MypageDTO.PaymentResponse getPayments(Long userNo);
-
-	MypageDTO.WishlistResponse getWishlist(Long userNo);
-
-	MypageDTO.InquiryResponse getInquiries(Long userNo);
-
-	MypageDTO.InquiryDetailResponse getInquiryDetail(Long userNo, Long inquiryNo);
+    PageResponseDTO<CodeLabelValueDTO> getMileageHistory(Long userNo, PageRequestDTO pageRequestDTO);
 }

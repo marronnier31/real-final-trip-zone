@@ -19,4 +19,5 @@ public class AdminStaticDTO {
 	private List<LodgingTypeAmountMonthlyDTO> lodgingTypeAmountMonthly;
 	private Long monthlyTotalSalesAmount;
 	private Long monthlyTotalBookingCount;
+	private List<AdminMonthlySalesDTO> monthlySales;
 }

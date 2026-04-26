@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import DataTable from "../../components/common/DataTable";
 import { toUserFacingErrorMessage } from "../../lib/appClient";
+import { geocodeAddress } from "../../utils/kakaoAddress";
 import {
   createSellerLodging,
   deleteSellerLodging,
@@ -25,8 +26,8 @@ const INITIAL_FORM = {
   address: "",
   detailAddress: "",
   zipCode: "",
-  latitude: "37.5665",
-  longitude: "126.9780",
+  latitude: "",
+  longitude: "",
   description: "",
   checkInTime: "15:00",
   checkOutTime: "11:00",
@@ -61,6 +62,13 @@ function getActionButtonClass({ isActive = false, tone = "" } = {}) {
   ]
     .filter(Boolean)
     .join(" ");
+}
+
+function hasValidCoordinates(latitude, longitude) {
+  const lat = Number(latitude);
+  const lng = Number(longitude);
+
+  return Number.isFinite(lat) && Number.isFinite(lng) && !(lat === 0 && lng === 0);
 }
 
 export default function SellerLodgingsPage() {
@@ -178,8 +186,37 @@ export default function SellerLodgingsPage() {
 
     try {
       setIsSubmitting(true);
+      let nextPayload = { ...form };
+      let geocodeWarning = "";
+
+      try {
+        const geocoded = await geocodeAddress(form.address);
+        nextPayload = {
+          ...nextPayload,
+          latitude: String(geocoded.latitude),
+          longitude: String(geocoded.longitude),
+        };
+      } catch (error) {
+        const fallbackLatitude = String(form.latitude ?? "").trim();
+        const fallbackLongitude = String(form.longitude ?? "").trim();
+        const canReuseExistingCoordinates =
+          mode !== "create" && hasValidCoordinates(fallbackLatitude, fallbackLongitude);
+
+        if (!canReuseExistingCoordinates) {
+          throw new Error("주소 좌표를 확인하지 못했습니다. 주소를 다시 확인한 뒤 다시 저장해 주세요.");
+        }
+
+        nextPayload = {
+          ...nextPayload,
+          latitude: fallbackLatitude,
+          longitude: fallbackLongitude,
+        };
+        geocodeWarning = "주소 좌표를 새로 확인하지 못해 기존 위치를 유지했습니다.";
+        console.warn("Failed to geocode lodging address.", error);
+      }
+      setForm(nextPayload);
       if (mode === "create") {
-        const created = await createSellerLodging(form);
+        const created = await createSellerLodging(nextPayload);
         const refreshedRows = await getSellerLodgings();
         const createdWithRooms = refreshedRows.find((row) => row.id === created.id) ?? created;
         setRows(refreshedRows);
@@ -188,7 +225,7 @@ export default function SellerLodgingsPage() {
         setForm(toLodgingForm(createdWithRooms));
         setNotice("숙소를 등록했습니다. 객실 가격은 객실 관리에서 입력해 주세요.");
       } else if (selected) {
-        const updated = await updateSellerLodging(selected.id, form);
+        const updated = await updateSellerLodging(selected.id, nextPayload);
         const refreshedRows = await getSellerLodgings();
         const refreshed = refreshedRows.find((row) => row.id === updated.id) ?? updated;
         setRows(refreshedRows);

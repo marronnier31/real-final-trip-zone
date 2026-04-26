@@ -1,5 +1,7 @@
 package com.kh.trip.dto;
 
+import java.util.List;
+
 import com.kh.trip.domain.enums.MemberGradeName;
 
 import lombok.AllArgsConstructor;
@@ -19,5 +21,10 @@ public class UserDTO {
 	private MemberGradeName gradeName;
 	private Long mileage;
 	private String enabled;
+	private String grade;
+	private String gradeHint;
+	private String status;
+	private String joinedAt;
+	private List<CodeLabelValueDTO> details;
 
 }

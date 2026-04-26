@@ -20,6 +20,7 @@ import com.kh.trip.dto.HostProfileDTO;
 import com.kh.trip.dto.LodgingDTO;
 import com.kh.trip.dto.PageRequestDTO;
 import com.kh.trip.dto.PageResponseDTO;
+import com.kh.trip.dto.SellerDashboardLodgingSummaryDTO;
 import com.kh.trip.dto.SellerSalesSummaryDTO;
 import com.kh.trip.security.AuthUserPrincipal;
 import com.kh.trip.service.BookingService;
@@ -44,6 +45,14 @@ public class SellerController {
 	public List<LodgingDTO> getMyLodgings(@AuthenticationPrincipal AuthUserPrincipal authUser) {
 		HostProfileDTO hostProfile = requireHostProfile(authUser);
 		return lodgingService.getLodgingsByHostNo(hostProfile.getHostNo());
+	}
+
+	@GetMapping("/lodgings/summary")
+	@PreAuthorize("hasRole('HOST')")
+	public List<SellerDashboardLodgingSummaryDTO> getMyLodgingSummaries(
+			@AuthenticationPrincipal AuthUserPrincipal authUser) {
+		HostProfileDTO hostProfile = requireHostProfile(authUser);
+		return lodgingService.getSellerDashboardLodgingSummaries(hostProfile.getHostNo());
 	}
 
 	@GetMapping("/bookings")

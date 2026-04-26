@@ -1,6 +1,7 @@
 package com.kh.trip.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.kh.trip.domain.enums.InquiryStatus;
 import com.kh.trip.domain.enums.InquiryType;
@@ -27,4 +28,10 @@ public class InquiryDTO {
 	private String lodging;
 	private LocalDateTime regDate;
 	private LocalDateTime updDate;
+	private String type;
+	private String statusLabel;
+	private String actor;
+	private String updatedAt;
+	private String preview;
+	private List<InquiryMessageDTO> messages;
 }

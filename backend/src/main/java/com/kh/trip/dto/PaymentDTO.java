@@ -33,4 +33,12 @@ public class PaymentDTO {
 	private Long refundAmount;
 	private String failReason;
 	private String rawResponse;
+	private String bookingId;
+	private String lodgingName;
+	private String roomName;
+	private String amount;
+	private String paymentStatusLabel;
+	private String paymentMethodLabel;
+	private String paidAt;
+	private String detail;
 }

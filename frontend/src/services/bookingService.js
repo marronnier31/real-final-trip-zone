@@ -25,7 +25,7 @@ export function getBookingStatusNotes() {
 export async function createBookingReservation(payload) {
   const session = readAuthSession();
   if (!session?.userNo) {
-    throw new Error("로그인 정보가 없습니다.");
+    throw new Error("로그인이 필요합니다.");
   }
 
   const createResponse = await post("/api/booking/", {

@@ -33,7 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 		// Authorization 헤더가 있고 Bearer 토큰 형식이면 JWT를 꺼낸다.
 		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-			// Bearer 를 제거하고 실제 JWT 문자열만 추출한다.
 			String token = authorizationHeader.substring(7);
 
 			// 토큰 서명/만료 여부를 먼저 검증한다.
@@ -45,12 +44,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 				// 실제 API 인증에는 ACCESS 토큰만 사용한다.
 				if ("ACCESS".equals(tokenType)) {
 
-					// 토큰에 저장된 userNo를 꺼내 실제 사용자 정보를 다시 조회한다.
+					// 토큰 안에 저장된 사용자 번호를 꺼낸다.
+					// 소셜 로그인/일반 로그인 모두 공통으로 처리하기 위해 userNo 기준으로 조회한다.
 					Long userNo = jwtProvider.getUserNo(token);
 
-					// 토큰 정보만 믿지 않고 DB에서 현재 사용자 상태와 권한을 다시 조회한다.
+					// userNo로 실제 사용자 정보를 다시 조회해서 인증 객체를 만든다.
 					AuthUserPrincipal authUser = customUserDetailsService.loadUserByUserNo(userNo);
-					// 토큰이 정상이어도 비활성 계정이면 인증하지 않는다.
 					if (!authUser.isEnabled()) {
 						filterChain.doFilter(request, response);
 						return;
@@ -62,14 +61,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 					// 현재 요청의 부가 정보(IP, 세션 정보 등)를 인증 객체에 저장
 					authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-					// 현재 요청을 인증된 사용자 요청으로 등록한다.
-					// @AuthenticationPrincipal 사용가능
+					// SecurityContext에 인증 정보를 넣어 현재 요청을 로그인 사용자로 처리하게 한다.
 					SecurityContextHolder.getContext().setAuthentication(authentication);
 				}
 			}
 		}
 
-		// 현재 필터 처리가 끝났으므로 다음 필터 또는 컨트롤러로 요청을 넘긴다.
+		// 현재 필터 작업이 끝났으므로 다음 필터로 요청을 넘긴다.
 		filterChain.doFilter(request, response);
 	}
 

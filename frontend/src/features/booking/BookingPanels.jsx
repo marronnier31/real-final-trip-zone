@@ -120,10 +120,10 @@ export function DateRangePopover({ open, anchorRef, panelRef, visibleMonth, setV
             setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() - 1, 1));
           }}
         >
-          이전
+          이전 달
         </button>
         <button type="button" className="calendar-nav" onClick={() => setVisibleMonth((current) => new Date(current.getFullYear(), current.getMonth() + 1, 1))}>
-          다음
+          다음 달
         </button>
       </div>
       <div className="calendar-month-grid" style={{ gridTemplateColumns: position.isMobile ? "1fr" : "repeat(2, minmax(0, 1fr))" }}>

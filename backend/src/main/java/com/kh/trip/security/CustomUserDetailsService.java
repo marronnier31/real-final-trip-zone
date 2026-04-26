@@ -42,7 +42,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
 		User user = userRepository.findById(authProvider.getUserNo())
 				.orElseThrow(() -> new UsernameNotFoundException("User Not Found"));
-		// DB 사용자 정보와 권한 목록을 묶어서 Spring Security용 사용자 객체를 만든다.
+
 		List<String> roleNames = hostRoleSyncService.syncAndGetRoleNames(user.getUserNo());
 
 		return new AuthUserPrincipal(user.getUserNo(), authProvider.getLoginId(), authProvider.getPasswordHash(),

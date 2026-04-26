@@ -68,7 +68,8 @@ public class UserCoupon extends BaseTimeEntity{
 	        this.status = CouponStatus.USED;
 	        return this.status; 
 	    }
-	    
+	 
+
 	    // 기간 및 원본 쿠폰 상태 확인 로직
 	    LocalDateTime now = LocalDateTime.now();
 	    if (this.coupon != null && this.coupon.getEndDate().isBefore(now)) {

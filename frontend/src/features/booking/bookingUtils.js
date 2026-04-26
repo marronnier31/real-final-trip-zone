@@ -44,7 +44,6 @@ export function monthGrid(baseDate) {
     day.setDate(start.getDate() + index);
     return day;
   });
-  // Trim trailing row if it's entirely outside the current month
   if (days[35].getMonth() !== baseDate.getMonth()) {
     days.splice(35, 7);
   }
@@ -85,7 +84,7 @@ export function computePosition(anchorRect, wantedWidth, wantedHeight, options =
 export function formatDateSummary(checkIn, checkOut) {
   const start = parseISO(checkIn);
   const end = parseISO(checkOut);
-  if (!start || !end) return "날짜를 선택하세요";
+  if (!start || !end) return "날짜를 선택해 주세요.";
   const nights = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
   return `${start.getMonth() + 1}.${start.getDate()} ${WEEK_DAYS[start.getDay()]} - ${end.getMonth() + 1}.${end.getDate()} ${WEEK_DAYS[end.getDay()]} · ${nights}박`;
 }

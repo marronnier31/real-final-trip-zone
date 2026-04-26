@@ -43,7 +43,7 @@ public class AuthUserPrincipal implements UserDetails {
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		// 문자열 권한 목록을 Spring Security 가 이해하는 권한 객체로 변환한다.
+		// 권한 문자열을 시큐리티 권한 객체로 변환한다.
 		return roleNames.stream().map(SimpleGrantedAuthority::new).toList();
 	}
 

@@ -44,16 +44,6 @@ public class RoomController {
 		return roomService.createRoom(roomDTO); 
 	}
 
-	@GetMapping("/lodging/{lodgingNo}")
-	public List<RoomDTO> getRoomsByLodgingNo(@PathVariable Long lodgingNo) { 
-		return roomService.getRoomsByLodgingNo(lodgingNo); 
-	}
-
-	@GetMapping("/{roomNo}")
-	public RoomDTO getRoomDetail(@PathVariable Long roomNo) { 
-		return roomService.getRoomDetail(roomNo); 
-	}
-
 	@PatchMapping("/{roomNo}")
 	@PreAuthorize("hasAnyRole('HOST', 'ADMIN')")
 	public RoomDTO updateRoom(@PathVariable Long roomNo, @AuthenticationPrincipal AuthUserPrincipal authUser,
@@ -81,17 +71,6 @@ public class RoomController {
 	@GetMapping("/status/{status}")
 	public List<RoomDTO> getRoomsByStatus(@PathVariable RoomStatus status) { 
 		return roomService.getRoomsByStatus(status); 
-	}
-
-	@GetMapping("/search")
-	public List<RoomDTO> searchRoomsByName(@RequestParam String keyword) {
-		return roomService.searchRoomsByName(keyword); 
-	}
-
-	@GetMapping("/lodging/{lodgingNo}/status/{status}")
-	public List<RoomDTO> getRoomsByLodgingNoAndStatus(@PathVariable Long lodgingNo,
-			@PathVariable RoomStatus status) { 
-		return roomService.getRoomsByLodgingNoAndStatus(lodgingNo, status); 
 	}
 
 	private void verifyRoomOwnership(AuthUserPrincipal authUser, Long roomNo) {

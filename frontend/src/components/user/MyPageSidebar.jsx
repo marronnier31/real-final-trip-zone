@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { readAuthSession } from "../../features/auth/authSession";
-import { getCachedMyHomeSnapshot, getMyHome } from "../../services/mypageService";
-import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
+import { getMyProfileSummary } from "../../services/mypageService";
+import { formatMembershipTierTitle } from "../../features/mypage/mypageViewModels";
 
 const ITEMS = [
   { to: "/my/bookings", label: "예약 내역" },
@@ -17,9 +17,12 @@ const ITEMS = [
 
 export default function MyPageSidebar() {
   const session = readAuthSession();
-  const [profileSummary, setProfileSummary] = useState(() => getCachedMyHomeSnapshot()?.profileSummary ?? null);
+  const [profileSummary, setProfileSummary] = useState(null);
 
+  console.log("MyPageSidebar rendered");
   useEffect(() => {
+    console.log("MyPageSidebar useEffect start", session?.role);
+
     if (session?.role !== "ROLE_USER") {
       setProfileSummary(null);
       return undefined;
@@ -29,9 +32,10 @@ export default function MyPageSidebar() {
 
     async function loadProfileSummary() {
       try {
-        const response = await getMyHome();
+        const response = await getMyProfileSummary();
+        console.log("profileSummary response:", response);
         if (cancelled) return;
-        setProfileSummary(response?.profileSummary ?? null);
+        setProfileSummary(response ?? null);
       } catch {
         if (!cancelled) {
           setProfileSummary(null);
@@ -46,10 +50,11 @@ export default function MyPageSidebar() {
     };
   }, [session?.role]);
 
-  const profileName = profileSummary?.name ?? session?.name ?? "TripZone 회원";
+  const profileName =
+    profileSummary?.userName ?? session?.name ?? "TripZone 회원";
   const gradeLabel =
     session?.role === "ROLE_USER"
-      ? formatMembershipLabel(profileSummary?.grade)
+      ? formatMembershipTierTitle(profileSummary?.grade)
       : "사용자";
 
   return (
@@ -66,7 +71,13 @@ export default function MyPageSidebar() {
       </Link>
       <nav className="my-sidebar-nav" aria-label="마이페이지 메뉴">
         {ITEMS.map((item) => (
-          <NavLink key={item.to} to={item.to} className={({ isActive }) => `my-sidebar-link${isActive ? " is-active" : ""}`}>
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `my-sidebar-link${isActive ? " is-active" : ""}`
+            }
+          >
             <span>{item.label}</span>
             <span aria-hidden="true">›</span>
           </NavLink>

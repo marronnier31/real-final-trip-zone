@@ -103,7 +103,6 @@ public class AuthServiceImpl implements AuthService {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다.");
 		}
 
-		//신규 회원에게 부여할 기본 등급(BASIC) 조회
 		MemberGrade basicGrade = memberGradeRepository.findById(MemberGradeName.BASIC)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "기본 등급 설정이 없습니다."));
 		
@@ -135,32 +134,31 @@ public class AuthServiceImpl implements AuthService {
 		AuthUserPrincipal authUser;
 
 		try {
-			// 입력한 loginId로 사용자 인증 정보를 조회한다.
 			authUser = (AuthUserPrincipal) customUserDetailsService.loadUserByUsername(request.getLoginId());
 		} catch (UsernameNotFoundException e) {
 			throw new BadCredentialsException("아이디 또는 비밀번호가 올바르지 않습니다.");
 		}
-		// 탈퇴/비활성 회원은 로그인 차단
+		// 탈퇴한 회원
 		if (!authUser.isEnabled()) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "탈퇴한 회원은 로그인할 수 없습니다.");
 		}
-		// 사용자가 입력한 비밀번호와 DB의 암호화 비밀번호를 비교
+		// 입력한 비밀번호와 DB에 저장된 암호화 비밀번호를 비교한다.
 		if (!passwordEncoder.matches(request.getPassword(), authUser.getPassword())) {
 			throw new BadCredentialsException("아이디 또는 비밀번호가 올바르지 않습니다.");
 		}
 
-		// 로그인 성공 시 access token 과 refresh token 을 생성한다.
+		// 로그인 성공 시 access token과 refresh token을 생성한다.
 		String accessToken = jwtProvider.generateAccessToken(authUser);
 		String refreshToken = jwtProvider.generateRefreshToken(authUser);
 
-		// refresh token 을 DB에 저장하기 위한 객체 생성
+		// refresh token을 DB에 저장하기 위한 객체 생성
 		UserRefreshToken userRefreshToken = UserRefreshToken.builder().userNo(authUser.getUserNo())
 				.tokenValue(refreshToken).expiresAt(LocalDateTime.now().plusSeconds(refreshTokenExpiration)).build();
 
-		// Refresh Token 을 DB에 저장해서 서버가 토큰 상태를 직접 통제할 수 있게 한다.
+		// refresh token 저장
 		userRefreshTokenRepository.save(userRefreshToken);
 
-		// 프론트엔드가 이후 요청에 사용할 토큰과 사용자 정보를 응답한다.
+		// 로그인 성공 응답 데이터 반환
 		return LoginResponseDTO.builder().grantType("Bearer").accessToken(accessToken).refreshToken(refreshToken)
 				.accessTokenExpiresIn(accessTokenExpiration).refreshTokenExpiresIn(refreshTokenExpiration)
 				.userNo(authUser.getUserNo()).loginId(authUser.getLoginId()).userName(authUser.getUserName())
@@ -172,35 +170,29 @@ public class AuthServiceImpl implements AuthService {
 
 		String refreshToken = request.getRefreshToken();
 
-		// 1. Refresh Token 자체의 서명/만료가 유효한지 먼저 검사
 		if (!jwtProvider.validateToken(refreshToken)) {
 			throw new RuntimeException("Invalid refresh token");
 		}
 
-		// 2. DB에 저장된 Refresh Token인지 다시 확인
 		UserRefreshToken savedToken = userRefreshTokenRepository.findByTokenValue(refreshToken)
 				.orElseThrow(() -> new RuntimeException("Refresh token not found"));
-		// 3. 이미 로그아웃 등으로 폐기된 토큰인지 확인
+
 		if ("1".equals(savedToken.getRevokedYn())) {
 			throw new RuntimeException("Refresh token revoked");
 		}
-		// 4. DB 기준 만료 시간도 다시 확인
+
 		if (savedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
 			throw new RuntimeException("Refresh token expired");
 		}
 
-		// 5. 토큰 안의 userNo를 꺼내 현재 사용자 정보를 다시 조회
 		Long userNo = jwtProvider.getUserNo(refreshToken);
+
 		AuthUserPrincipal authUser = customUserDetailsService.loadUserByUserNo(userNo);
-		
-		// 6. 사용자가 비활성화 상태라면 재발급도 막고 Refresh Token도 폐기
 		if (!authUser.isEnabled()) {
 			savedToken.revoke();
 			userRefreshTokenRepository.save(savedToken);
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "탈퇴한 회원은 토큰을 재발급할 수 없습니다.");
 		}
-		
-		// 7. 새 Access Token만 재발급
 		String newAccessToken = jwtProvider.generateAccessToken(authUser);
 
 		return TokenRefreshResponseDTO.builder().grantType("Bearer").accessToken(newAccessToken)
@@ -209,50 +201,43 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public void logout(LogoutRequestDTO request) {
-		// 1. 요청에서 Refresh Token 추출
+		// 요청에서 refresh token 추출
 		String refreshToken = request.getRefreshToken();
-		
-		// 2. 토큰 자체가 유효한지 먼저 확인
+		// refresh token 형식이 올바른지 먼저 확인
 		if (!jwtProvider.validateToken(refreshToken)) {
 			throw new RuntimeException("Invalid refresh token");
 		}
-		// 3. DB에 저장된 Refresh Token인지 조회
+		// DB에 저장된 refresh token 조회
 		UserRefreshToken savedToken = userRefreshTokenRepository.findByTokenValue(refreshToken)
 				.orElseThrow(() -> new RuntimeException("Refresh token not found"));
-		// 4. 토큰의 주인(userNo)이 실제 DB 기록과 일치하는지 확인
+		// 토큰 안의 사용자 번호와 DB 저장 사용자가 다르면 처리하지 않음
 		if (!savedToken.getUserNo().equals(jwtProvider.getUserNo(refreshToken))) {
 			throw new RuntimeException("Refresh token owner mismatch");
 		}
-		// 5. 이미 폐기된 토큰이면 중복 로그아웃으로 간주
+		// 이미 폐기된 토큰이면 다시 처리하지 않음
 		if ("1".equals(savedToken.getRevokedYn())) {
 			throw new RuntimeException("Refresh token already revoked");
 		}
-		// 6. Refresh Token 폐기 처리
+		// refresh token 폐기 처리
 		savedToken.revoke();
 
-		// 7. 폐기 상태 저장
+		// 변경 내용 저장
 		userRefreshTokenRepository.save(savedToken);
 	}
 
-	
-	// 소셜 로그인 공통 처리 메서드
 	private LoginResponseDTO socialLogin(SocialUserInfo socialUser) {
 
-		// 1. providerCode + providerUserId로 이미 연동된 계정인지 확인
 		Optional<UserAuthProvider> authProviderOpt = userAuthProviderRepository
 				.findByProviderCodeAndProviderUserId(socialUser.getProviderCode(), socialUser.getProviderUserId());
 
 		Long userNo;
 
 		if (authProviderOpt.isPresent()) {
-			// 이미 소셜 연동된 계정이면 기존 userNo 사용
 			userNo = authProviderOpt.get().getUserNo();
 		} else {
-			// 아직 소셜 연동이 안 된 경우, 같은 이메일 회원이 있는지 확인
 			Optional<User> existingUserOpt = userRepository.findByEmail(socialUser.getEmail());
 
 			if (existingUserOpt.isPresent()) {
-				// 같은 이메일 회원이 있으면 해당 회원에 소셜 계정만 추가 연동
 				User existingUser = existingUserOpt.get();
 
 				UserAuthProvider authProvider = UserAuthProvider.builder()
@@ -264,7 +249,6 @@ public class AuthServiceImpl implements AuthService {
 				userAuthProviderRepository.save(authProvider);
 				userNo = existingUser.getUserNo();
 			} else {
-				// 완전히 신규 사용자면 USER, USER_AUTH_PROVIDER, USER_ROLE을 모두 생성
 				MemberGrade basicGrade = memberGradeRepository.findById(MemberGradeName.BASIC)
 						.orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "기본 등급 설정이 없습니다."));
 
@@ -275,6 +259,7 @@ public class AuthServiceImpl implements AuthService {
 						.memberGrade(basicGrade)
 						.enabled("1")
 						.build();
+
 				User savedUser = userRepository.save(newUser);
 
 				UserAuthProvider authProvider = UserAuthProvider.builder()
@@ -291,29 +276,24 @@ public class AuthServiceImpl implements AuthService {
 				userNo = savedUser.getUserNo();
 			}
 		}
-		// 2. 최종 사용자 정보를 조회하고 활성 여부 확인
+
 		User user = userRepository.findById(userNo).orElseThrow(() -> new RuntimeException("User not found"));
 		if (!"1".equals(user.getEnabled())) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "탈퇴한 회원은 로그인할 수 없습니다.");
 		}
-		// 3. 현재 사용자 권한 목록 조회
 		List<String> roleNames = hostRoleSyncService.syncAndGetRoleNames(userNo);
 
-		// 4. JWT 생성을 위한 Spring Security 사용자 객체 생성
 		AuthUserPrincipal authUser = new AuthUserPrincipal(user.getUserNo(), user.getEmail(), "", user.getUserName(),
 				user.getEmail(), user.getPhone(), user.getEnabled(), roleNames);
 
-		// 5. 일반 로그인과 동일하게 Access / Refresh Token 발급
 		String accessToken = jwtProvider.generateAccessToken(authUser);
 		String refreshToken = jwtProvider.generateRefreshToken(authUser);
 
-		// 6. Refresh Token 저장
 		UserRefreshToken userRefreshToken = UserRefreshToken.builder().userNo(authUser.getUserNo())
 				.tokenValue(refreshToken).expiresAt(LocalDateTime.now().plusSeconds(refreshTokenExpiration)).build();
 
 		userRefreshTokenRepository.save(userRefreshToken);
 
-		// 7. 토큰과 사용자 정보를 응답
 		return LoginResponseDTO.builder().grantType("Bearer").accessToken(accessToken).refreshToken(refreshToken)
 				.accessTokenExpiresIn(accessTokenExpiration).refreshTokenExpiresIn(refreshTokenExpiration)
 				.userNo(authUser.getUserNo()).loginId(authUser.getLoginId()).userName(authUser.getUserName())
@@ -323,16 +303,13 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	@Transactional
 	public LoginResponseDTO googleLogin(GoogleLoginRequestDTO request) {
-		// Google에서 받은 idToken을 검증해서 사용자 정보를 추출
 		SocialUserInfo socialUser = googleTokenVerifier.verify(request.getIdToken());
-		// 이후 흐름은 공통 소셜 로그인 로직으로 처리
 		return socialLogin(socialUser);
 	}
 
 	@Override
 	@Transactional
 	public LoginResponseDTO kakaoLogin(KakaoLoginRequestDTO request) {
-		// Kakao 인가 코드를 검증해서 사용자 정보를 추출
 		SocialUserInfo socialUser = kakaoTokenVerifier.verify(request.getCode(), request.getRedirectUri());
 		return socialLogin(socialUser);
 	}
@@ -340,7 +317,6 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	@Transactional
 	public LoginResponseDTO naverLogin(NaverLoginRequestDTO request) {
-		// Naver 인가 코드/상태값을 검증해서 사용자 정보를 추출
 		SocialUserInfo socialUser = naverTokenVerifier.verify(request.getCode(), request.getState());
 		return socialLogin(socialUser);
 	}
@@ -348,15 +324,11 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	@Transactional
 	public void changePassword(Long userNo, ChangePasswordRequestDTO request) {
-		
-		// 1. LOCAL 계정 사용자만 비밀번호 변경 가능
 		UserAuthProvider authProvider = userAuthProviderRepository.findByUserNoAndProviderCode(userNo, "LOCAL")
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "로컬 로그인 계정만 비밀번호를 변경할 수 있습니다."));
-		// 2. 새 비밀번호와 확인 비밀번호가 일치하는지 검사
 		if (!request.getNewPassword().equals(request.getNewPasswordConfirm())) {
 			throw new ResponseStatusException(HttpStatus.CONFLICT, "새 비밀번호와 비밀번호 확인이 일치하지 않습니다.");
 		}
-		// 3. 새 비밀번호를 암호화해서 저장
 		authProvider.changePasswordHash(passwordEncoder.encode(request.getNewPassword()));
 		userAuthProviderRepository.save(authProvider);
 	}

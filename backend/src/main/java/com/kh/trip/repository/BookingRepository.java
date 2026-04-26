@@ -26,6 +26,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 	@Query("select b from Booking b where b.user.userNo = :userNo order by b.regDate desc")
 	List<Booking> findMypageBookings(@Param("userNo") Long userNo);
 
+	@EntityGraph(attributePaths = { "user", "room", "room.lodging" })
 	@Query("select b from Booking b join b.room r where r.lodging.host.hostNo = :hostNo")
 	Page<Booking> findByHostNo(@Param("hostNo") Long hostNo, Pageable pageable);
 
@@ -124,6 +125,80 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 			    order by l.lodgingNo desc
 			""")
 	List<Object[]> getSellerSalesSummary(@Param("hostNo") Long hostNo);
+
+	@Query("""
+			select count(b)
+			from Booking b
+			join b.room r
+			where r.lodging.host.hostNo = :hostNo
+			""")
+	long countSellerBookings(@Param("hostNo") Long hostNo);
+
+	@Query("""
+			select count(b)
+			from Booking b
+			join b.room r
+			where r.lodging.host.hostNo = :hostNo
+			  and b.status = :status
+			""")
+	long countSellerBookingsByStatus(@Param("hostNo") Long hostNo, @Param("status") BookingStatus status);
+
+	@Query("""
+			select
+				l.lodgingType,
+				count(l)
+			from Lodging l
+			where l.host.hostNo = :hostNo
+			group by l.lodgingType
+			order by count(l) desc, l.lodgingType asc
+			""")
+	List<Object[]> getSellerLodgingTypeCounts(@Param("hostNo") Long hostNo);
+
+	@Query("""
+			select
+				l.lodgingType,
+				coalesce(sum(case
+					when b.status = BookingStatus.CONFIRMED
+					  or b.status = BookingStatus.COMPLETED
+					then b.totalPrice
+					else 0
+				end), 0),
+				coalesce(sum(case
+					when b.status <> BookingStatus.CANCELED
+					then 1
+					else 0
+				end), 0)
+			from Lodging l
+			left join Room r on r.lodging = l
+			left join Booking b on b.room = r
+			where l.host.hostNo = :hostNo
+			group by l.lodgingType
+			order by coalesce(sum(case
+				when b.status = BookingStatus.CONFIRMED
+				  or b.status = BookingStatus.COMPLETED
+				then b.totalPrice
+				else 0
+			end), 0) desc, l.lodgingType asc
+			""")
+	List<Object[]> getSellerLodgingTypeSales(@Param("hostNo") Long hostNo);
+
+	@Query(value = """
+			select
+				to_char(b.check_in_date, 'YYYY.MM') as month_label,
+				nvl(sum(case
+					when b.status in ('CONFIRMED', 'COMPLETED')
+					then b.total_price
+					else 0
+				end), 0) as sales_amount
+			from bookings b
+			join rooms r on b.room_no = r.room_no
+			join lodgings l on r.lodging_no = l.lodging_no
+			where l.host_no = :hostNo
+			  and b.check_in_date >= :startDate
+			group by to_char(b.check_in_date, 'YYYY.MM')
+			order by month_label
+			""", nativeQuery = true)
+	List<Object[]> getSellerMonthlySales(@Param("hostNo") Long hostNo, @Param("startDate") LocalDateTime startDate);
 
 	@Query("select b from Booking b where b.user.userNo = :userNo and b.room.lodging.lodgingNo = :lodgingNo and b.status in :statuses order by b.bookingNo desc")
 	List<Booking> findForInquiryRoom( @Param("userNo") Long userNo, @Param("lodgingNo") Long lodgingNo,  @Param("statuses") List<BookingStatus> statuses,

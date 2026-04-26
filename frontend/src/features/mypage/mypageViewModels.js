@@ -175,6 +175,15 @@ export function formatMembershipLabel(grade = "") {
   return normalized === "회원" ? "회원" : `${normalized} 회원`;
 }
 
+export function formatMembershipTierTitle(grade = "") {
+  const normalized = normalizeMembershipGrade(grade);
+  if (normalized === "BASIC") return "Basic";
+  if (normalized === "SILVER") return "Silver";
+  if (normalized === "GOLD") return "Gold";
+  if (normalized === "BLACK") return "Black";
+  return "Basic";
+}
+
 export function formatMembershipGradeLabel(grade = "") {
   const normalized = normalizeMembershipGrade(grade);
   return normalized === "회원" ? "회원 등급" : `${normalized} 등급`;

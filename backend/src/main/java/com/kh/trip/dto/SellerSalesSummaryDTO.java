@@ -15,5 +15,9 @@ public class SellerSalesSummaryDTO {
 
 	private Long totalSalesAmount;
 	private Long totalBookingCount;
+	private Double canceledRatio;
+	private List<SellerLodgingTypeRatioDTO> lodgingTypeRatios;
 	private List<SellerLodgingSalesDTO> lodgingSales;
+	private List<SellerLodgingTypeSalesDTO> lodgingTypeSales;
+	private List<SellerMonthlySalesDTO> monthlySales;
 }

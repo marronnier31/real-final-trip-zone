@@ -21,16 +21,25 @@ public class BookingDTO {
 	private String userName;
 	private Long roomNo;
 	private Long userCouponNo;
-	private Long mileage;
 	private LocalDateTime checkInDate;
 	private LocalDateTime checkOutDate;
 	private Long guestCount;
 	private Long pricePerNight;
 	private Long discountAmount;
+	private Long mileageUsed;
 	private Long totalPrice;
 	private BookingStatus status;
 	private String requestMessage;
 	private LocalDateTime regDate;
 	private String lodgingName;
 	private String roomName;
+	private String bookingId;
+	private Long lodgingId;
+	private String stay;
+	private String bookingStatus;
+	private String bookingStatusLabel;
+	private String price;
+	private boolean canCancel;
+	private boolean canReview;
+	private boolean canViewPayment;
 }

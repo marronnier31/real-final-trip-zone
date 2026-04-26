@@ -4,7 +4,7 @@ import { invalidateLodgingsCache } from "./lodgingService";
 import { getSellerInquiryRooms } from "./sellerInquiryService";
 
 function normalizeDiscountType(value) {
-  if (value === "RATE") return "PERCENT";
+  
   if (typeof value === "string" && value.toLowerCase() === "percent") return "PERCENT";
   return value ?? "AMOUNT";
 }
@@ -622,6 +622,15 @@ export async function getSellerSalesSummary() {
   };
 }
 
+function appendCoordinate(formData, key, value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    throw new Error("주소 좌표가 올바르지 않습니다. 주소를 다시 확인한 뒤 저장해 주세요.");
+  }
+
+  formData.append(key, String(numeric));
+}
+
 export async function createSellerLodging(payload) {
   const formData = new FormData();
   formData.append("lodgingName", payload.name.trim());
@@ -630,8 +639,8 @@ export async function createSellerLodging(payload) {
   formData.append("address", payload.address.trim());
   formData.append("detailAddress", payload.detailAddress.trim());
   formData.append("zipCode", payload.zipCode.trim());
-  formData.append("latitude", String(Number(payload.latitude)));
-  formData.append("longitude", String(Number(payload.longitude)));
+  appendCoordinate(formData, "latitude", payload.latitude);
+  appendCoordinate(formData, "longitude", payload.longitude);
   formData.append("description", payload.description.trim());
   formData.append("checkInTime", payload.checkInTime);
   formData.append("checkOutTime", payload.checkOutTime);
@@ -661,8 +670,8 @@ export async function updateSellerLodging(lodgingId, payload) {
   formData.append("address", payload.address.trim());
   formData.append("detailAddress", payload.detailAddress.trim());
   formData.append("zipCode", payload.zipCode.trim());
-  formData.append("latitude", String(Number(payload.latitude)));
-  formData.append("longitude", String(Number(payload.longitude)));
+  appendCoordinate(formData, "latitude", payload.latitude);
+  appendCoordinate(formData, "longitude", payload.longitude);
   formData.append("description", payload.description.trim());
   formData.append("checkInTime", payload.checkInTime);
   formData.append("checkOutTime", payload.checkOutTime);

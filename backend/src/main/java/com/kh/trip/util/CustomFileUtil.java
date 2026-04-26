@@ -6,13 +6,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +29,9 @@ import net.coobird.thumbnailator.Thumbnails;
 @Log4j2
 @RequiredArgsConstructor
 public class CustomFileUtil {
+
+	private static final byte[] FALLBACK_IMAGE_BYTES = Base64.getDecoder().decode(
+			"R0lGODlhAQABAPAAAAAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==");
 
 	@Value("${com.kh.upload.path}")
 	private String uploadPath;
@@ -114,23 +120,46 @@ public class CustomFileUtil {
 
 	// 브라우저에게 화며을 보여주는기능 담당함수
 	public ResponseEntity<Resource> getFile(String fileName) {
-		// D:\ upload +"\"+ sjfksdfjksdafjsak_kdj.jpg
-		Resource resource = new FileSystemResource(uploadPath + File.separator + fileName);
-		// 보낼파일이 존재하는지 체크
-		if (!resource.exists()) {
-			resource = new FileSystemResource(uploadPath + File.separator + "default.jpg");
-		}
-		// 웹브라우저에 보낼 header
-		HttpHeaders headers = new HttpHeaders();
-		try {
-			// Files.probeContentType()은 파일 경로를 분석하여 MIME 타입을 자동 감지 jpg → image/jpeg, png →
-			// image/png pdf → application/pdf 이 정보를 HTTP 응답 헤더에 Content-Type으로 추가
-			headers.add("Content-Type", Files.probeContentType(resource.getFile().toPath()));
-		} catch (Exception e) {
-			return ResponseEntity.internalServerError().build();
+		Path requestedPath = Paths.get(uploadPath, fileName);
+		Path fallbackPath = Paths.get(uploadPath, "default.jpg");
+		Path resolvedPath = Files.exists(requestedPath) ? requestedPath : (Files.exists(fallbackPath) ? fallbackPath : null);
+
+		if (resolvedPath == null) {
+			return ResponseEntity.ok()
+					.contentType(MediaType.IMAGE_GIF)
+					.contentLength(FALLBACK_IMAGE_BYTES.length)
+					.header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
+					.body(new ByteArrayResource(FALLBACK_IMAGE_BYTES));
 		}
 
-		return ResponseEntity.ok().headers(headers).body(resource);
+		Resource resource = new FileSystemResource(resolvedPath.toFile());
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CACHE_CONTROL, "public, max-age=300")
+				.header(HttpHeaders.CONTENT_TYPE, resolveContentType(resolvedPath))
+				.body(resource);
+	}
+
+	private String resolveContentType(Path filePath) {
+		try {
+			String contentType = Files.probeContentType(filePath);
+			if (contentType != null && !contentType.isBlank()) {
+				return contentType;
+			}
+		} catch (IOException e) {
+			log.warn("Failed to probe content type: {}", filePath, e);
+		}
+
+		String fileName = filePath.getFileName().toString().toLowerCase();
+		if (fileName.endsWith(".png")) {
+			return MediaType.IMAGE_PNG_VALUE;
+		}
+		if (fileName.endsWith(".gif")) {
+			return MediaType.IMAGE_GIF_VALUE;
+		}
+		if (fileName.endsWith(".webp")) {
+			return "image/webp";
+		}
+		return MediaType.IMAGE_JPEG_VALUE;
 	}
 
 	public void deleteFiles(List<String> fileNames) {

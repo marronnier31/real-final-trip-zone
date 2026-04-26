@@ -1,7 +1,7 @@
 import { addDays, parseISO, startOfDay, toISO } from "./bookingUtils";
 
 function isPercentDiscountType(value) {
-  return value === "PERCENT" || value === "RATE" || String(value ?? "").toLowerCase() === "percent";
+  return value === "PERCENT" || String(value ?? "").toLowerCase() === "percent";
 }
 
 export function buildRoomLabel(room) {

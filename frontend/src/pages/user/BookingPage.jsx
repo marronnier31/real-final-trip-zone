@@ -24,15 +24,21 @@ import { getLodgingDetailById } from "../../services/lodgingService";
 import { fetchMyCoupons, getMyMileage } from "../../services/mypageService";
 
 const DEFAULT_COUPON_OPTION = {
-  label: "���� �̻��",
+  label: "\uCFE0\uD3F0 \uBBF8\uC0AC\uC6A9",
   discount: 0,
   discountType: "AMOUNT",
   userCouponNo: null,
-  discountLabel: "���� ����",
+  discountLabel: "\uD560\uC778 \uC5C6\uC74C",
 };
 
 function isPercentDiscountType(value) {
-  return value === "PERCENT" || value === "RATE" || String(value ?? "").toLowerCase() === "percent";
+  return value === "PERCENT" || String(value ?? "").toLowerCase() === "percent";
+}
+
+function formatCouponDiscountLabel(discountType, discountValue) {
+  return isPercentDiscountType(discountType)
+    ? `-${Number(discountValue ?? 0)}%`
+    : `-${Number(discountValue ?? 0).toLocaleString()}\uC6D0`;
 }
 
 export default function BookingPage() {
@@ -95,6 +101,7 @@ export default function BookingPage() {
       try {
         const [mileageResponse, couponRows] = await Promise.all([getMyMileage(), fetchMyCoupons()]);
         if (cancelled) return;
+
         setMileageBalance(Number(mileageResponse.summary?.balance ?? 0));
         setBookingCouponOptions([
           DEFAULT_COUPON_OPTION,
@@ -105,11 +112,7 @@ export default function BookingPage() {
               discount: Number(item.discountValue ?? 0),
               discountType: item.couponType ?? "AMOUNT",
               userCouponNo: item.userCouponId ?? item.id,
-              discountLabel:
-                item.discountLabel ??
-                (isPercentDiscountType(item.couponType ?? "AMOUNT")
-                  ? `-${Number(item.discountValue ?? 0)}%`
-                  : `-${Number(item.discountValue ?? 0).toLocaleString()}��`),
+              discountLabel: formatCouponDiscountLabel(item.couponType, item.discountValue),
             })),
         ]);
       } catch (error) {
@@ -126,7 +129,7 @@ export default function BookingPage() {
     return () => {
       cancelled = true;
     };
-  }, [authUserNo]);
+  }, [authSession, authUserNo]);
 
   useEffect(() => {
     if (!form) return;
@@ -158,8 +161,8 @@ export default function BookingPage() {
     return (
       <div className="container page-stack">
         <section className="list-empty-state list-empty-state-full">
-          <strong>?�약 ?�보�?불러?�는 중입?�다.</strong>
-          <p>?�소?� 객실 ?�이?��? 가?�오�??�어??</p>
+          <strong>예약 정보를 불러오는 중입니다.</strong>
+          <p>숙소와 객실 정보를 가져오고 있어요.</p>
         </section>
       </div>
     );
@@ -167,7 +170,12 @@ export default function BookingPage() {
 
   const { selectedCoupon, selectedPayment } = getBookingSelections(form, bookingCouponOptions, bookingPaymentOptions);
   const selectedRoom = getSelectedBookingRoom(lodging, form.room);
-  const { baseAmount, nightCount, serviceFee, roomTotal, couponDiscount, mileageUsed, totalAmount } = buildBookingPricing(lodging, form, selectedCoupon, mileageBalance);
+  const { baseAmount, nightCount, serviceFee, roomTotal, couponDiscount, mileageUsed, totalAmount } = buildBookingPricing(
+    lodging,
+    form,
+    selectedCoupon,
+    mileageBalance
+  );
   const canSubmit = Boolean(authSession && selectedRoom && !isSubmitting);
 
   const handleDatePick = (day) => {
@@ -199,32 +207,32 @@ export default function BookingPage() {
     }
 
     if (!selectedRoom) {
-      setSubmitError("?�약 가?�한 객실??찾을 ???�습?�다.");
+      setSubmitError("예약 가능한 객실을 찾을 수 없습니다.");
       return;
     }
 
     if (!form.checkIn || !form.checkOut) {
-      setSubmitError("체크?�과 체크?�웃 ?�짜�??�인??주세??");
+      setSubmitError("체크인과 체크아웃 날짜를 확인해 주세요.");
       return;
     }
 
     if (!selectedPayment?.value) {
-      setSubmitError("결제 ?�단???�택??주세??");
+      setSubmitError("결제 수단을 선택해 주세요.");
       return;
     }
 
     if (Number(form.guests ?? 0) <= 0) {
-      setSubmitError("?�숙 ?�원?� 1�??�상?�어???�니??");
+      setSubmitError("투숙 인원은 1명 이상이어야 합니다.");
       return;
     }
 
     if (Number(form.guests) > Number(selectedRoom.maxGuestCount ?? 0)) {
-      setSubmitError(`?�택??객실?� 최�? ${selectedRoom.maxGuestCount}?�까지 가?�합?�다.`);
+      setSubmitError(`선택한 객실은 최대 ${selectedRoom.maxGuestCount}명까지 가능합니다.`);
       return;
     }
 
     if (Number(form.mileageToUse ?? 0) > 0) {
-      setSubmitError("마일리�? 차감 ?�?��? ?�직 결제 ?�동 ?�입?�다. 0P�?진행??주세??");
+      setSubmitError("마일리지 차감 기능은 아직 결제 연동 전입니다. 0P로 진행해 주세요.");
       return;
     }
 
@@ -246,7 +254,7 @@ export default function BookingPage() {
         paymentId: `PAY-${bookingResponse.bookingNo}-${Date.now()}`,
         storeId: "tripzone-local",
         channelKey: selectedPayment.value,
-        orderName: `${lodging.name} ${selectedRoom.name} ?�약`,
+        orderName: `${lodging.name} ${selectedRoom.name} 예약`,
         paymentAmount: bookingResponse.totalPrice,
         currency: "KRW",
         payMethod: selectedPayment.value,
@@ -257,9 +265,9 @@ export default function BookingPage() {
     } catch (error) {
       const message = error?.message || "";
       if (message.includes("403") || message.includes("Forbidden")) {
-        setSubmitError("?�약?� ?�반 ?�원 계정?�서�?진행?????�습?�다.");
+        setSubmitError("예약은 일반 회원 계정에서 진행해 주세요.");
       } else {
-        setSubmitError(toUserFacingErrorMessage(error, "?�약 ?�성???�패?�습?�다."));
+        setSubmitError(toUserFacingErrorMessage(error, "예약 생성에 실패했습니다."));
       }
     } finally {
       setIsSubmitting(false);
@@ -270,14 +278,14 @@ export default function BookingPage() {
     <div className="container page-stack">
       <section className="booking-hero">
         <div className="booking-hero-main">
-          <p className="eyebrow">?�약</p>
-          <h1>{lodging.name} ?�약</h1>
+          <p className="eyebrow">예약</p>
+          <h1>{lodging.name} 예약</h1>
           <p>{lodging.address}</p>
           <div className="feature-chip-row">
-            <span className="inline-chip">즉시 ?�약 ?�정</span>
-            <span className="inline-chip">?�전 결제</span>
-            <span className="inline-chip">{nightCount}�??�정</span>
-            <span className="inline-chip">{totalAmount.toLocaleString()}��</span>
+            <span className="inline-chip">즉시 예약 확정</span>
+            <span className="inline-chip">사전 결제</span>
+            <span className="inline-chip">{nightCount}박 일정</span>
+            <span className="inline-chip">{totalAmount.toLocaleString()}원</span>
           </div>
         </div>
       </section>
@@ -357,7 +365,3 @@ export default function BookingPage() {
     </div>
   );
 }
-
-
-
-

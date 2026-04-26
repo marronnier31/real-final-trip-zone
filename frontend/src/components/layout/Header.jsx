@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { readAuthSession } from "../../features/auth/authSession";
-import { getHeaderRoleLinks, getMembershipLabel, logoutCurrentSession } from "../../features/auth/authViewModels";
-import { formatMembershipLabel } from "../../features/mypage/mypageViewModels";
-import { getCachedMyHomeSnapshot, getMyHome, invalidateMyPageCaches } from "../../services/mypageService";
+import {
+  getHeaderRoleLinks,
+  getMembershipLabel,
+  logoutCurrentSession,
+} from "../../features/auth/authViewModels";
+import { formatMembershipTierTitle } from "../../features/mypage/mypageViewModels";
+import { get } from "../../lib/appClient";
+import {
+  getMyProfileSummary,
+  invalidateMyPageCaches,
+} from "../../services/mypageService";
 
 export default function Header() {
   const location = useLocation();
@@ -11,8 +19,13 @@ export default function Header() {
   const isHome = location.pathname === "/";
   const [session, setSession] = useState(() => readAuthSession());
   const [menuOpen, setMenuOpen] = useState(false);
-  const [homeSnapshot, setHomeSnapshot] = useState(() => getCachedMyHomeSnapshot());
   const menuRef = useRef(null);
+  const [profileSummary, setProfileSummary] = useState(null);
+  const [headerStats, setHeaderStats] = useState({
+    availableCouponCount: 0,
+    bookingCount: 0,
+    mileageValue: "0P",
+  });
 
   useEffect(() => {
     setSession(readAuthSession());
@@ -21,23 +34,47 @@ export default function Header() {
 
   useEffect(() => {
     if (session?.role !== "ROLE_USER") {
-      setHomeSnapshot(null);
+      setProfileSummary(null);
+      setHeaderStats({
+        availableCouponCount: 0,
+        bookingCount: 0,
+        mileageValue: "0P",
+      });
       return undefined;
     }
 
     let cancelled = false;
 
-    async function loadHomeSnapshot() {
+    async function loadHeaderData() {
       try {
-        const response = await getMyHome();
+        const [profile, couponResponse, bookingResponse] = await Promise.all([
+          getMyProfileSummary(),
+          get("/api/mypage/coupons?page=1&size=1"),
+          get("/api/mypage/bookings?page=1&size=1"),
+        ]);
+
         if (cancelled) return;
-        setHomeSnapshot(response);
+
+        setProfileSummary(profile ?? null);
+        setHeaderStats({
+          availableCouponCount: couponResponse?.totalCount ?? 0,
+          bookingCount: bookingResponse?.totalCount ?? 0,
+          mileageValue: `${Number(profile?.mileage ?? 0).toLocaleString()}P`,
+        });
       } catch (error) {
-        console.error("Failed to load header mypage snapshot.", error);
+        console.error("Failed to load header profile data.", error);
+        if (!cancelled) {
+          setProfileSummary(null);
+          setHeaderStats({
+            availableCouponCount: 0,
+            bookingCount: 0,
+            mileageValue: "0P",
+          });
+        }
       }
     }
 
-    loadHomeSnapshot();
+    loadHeaderData();
 
     return () => {
       cancelled = true;
@@ -77,8 +114,12 @@ export default function Header() {
     navigate("/my/membership");
   };
 
-  const membershipLabel = session?.role === "ROLE_USER" ? formatMembershipLabel(homeSnapshot?.profileSummary?.grade) : getMembershipLabel(session);
-  const profileLabel = session?.name ?? homeSnapshot?.profileSummary?.name ?? "TripZone 회원";
+  const membershipLabel =
+    session?.role === "ROLE_USER"
+      ? formatMembershipTierTitle(profileSummary?.grade)
+      : getMembershipLabel(session);
+  const profileLabel =
+    session?.name ?? profileSummary?.userName ?? profileSummary?.name ?? "TripZone 회원";
   const profileMetaLabel =
     session?.role === "ROLE_ADMIN"
       ? "관리자 대시보드"
@@ -86,9 +127,12 @@ export default function Header() {
         ? "판매자 대시보드"
         : membershipLabel;
   const roleLinks = getHeaderRoleLinks(session);
-  const availableCouponCount = session?.role === "ROLE_USER" ? homeSnapshot?.overview?.availableCouponCount ?? 0 : 0;
-  const upcomingBookingCount = session?.role === "ROLE_USER" ? homeSnapshot?.overview?.upcomingBookingCount ?? 0 : 0;
-  const mileageValue = homeSnapshot?.profileSummary?.mileage ?? "0P";
+  const availableCouponCount =
+    session?.role === "ROLE_USER" ? headerStats.availableCouponCount : 0;
+  const upcomingBookingCount =
+    session?.role === "ROLE_USER" ? headerStats.bookingCount : 0;
+  const mileageValue =
+    session?.role === "ROLE_USER" ? headerStats.mileageValue : "0P";
 
   return (
     <header className={`header${isHome ? " is-home" : ""}`}>
@@ -108,7 +152,11 @@ export default function Header() {
         <div className="header-utility">
           {session ? (
             <div className="header-profile-menu" ref={menuRef}>
-              <button type="button" className={`header-profile-chip${menuOpen ? " is-open" : ""}`} onClick={() => setMenuOpen((current) => !current)}>
+              <button
+                type="button"
+                className={`header-profile-chip${menuOpen ? " is-open" : ""}`}
+                onClick={() => setMenuOpen((current) => !current)}
+              >
                 <span className="header-profile-badge" aria-hidden="true">
                   <span className="header-profile-badge-wave" />
                   <span className="header-profile-badge-sun" />
@@ -130,7 +178,9 @@ export default function Header() {
                     {profileMetaLabel}
                   </span>
                 </span>
-                <span className="header-profile-toggle" aria-hidden="true">☰</span>
+                <span className="header-profile-toggle" aria-hidden="true">
+                  ☰
+                </span>
               </button>
               {menuOpen ? (
                 <div className="header-profile-dropdown">
@@ -154,12 +204,20 @@ export default function Header() {
                   ) : null}
                   <div className="header-profile-dropdown-links">
                     {roleLinks.map((item) => (
-                      <Link key={item.to} className="header-dropdown-link" to={item.to}>
+                      <Link
+                        key={item.to}
+                        className="header-dropdown-link"
+                        to={item.to}
+                      >
                         {item.label}
                       </Link>
                     ))}
                   </div>
-                  <button type="button" className="header-dropdown-logout" onClick={handleLogout}>
+                  <button
+                    type="button"
+                    className="header-dropdown-logout"
+                    onClick={handleLogout}
+                  >
                     로그아웃
                   </button>
                 </div>
