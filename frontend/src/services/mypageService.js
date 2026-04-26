@@ -34,8 +34,18 @@ function getProfilePayload(response) {
   return response.summary ?? response;
 }
 
+function formatWonValue(value) {
+  return `${Number(value ?? 0).toLocaleString()}\uC6D0`;
+}
+
 function mapBookingItem(item) {
   if (!item) return item;
+
+  const totalPrice = Number(item.totalPrice ?? 0);
+  const mileageUsed = Number(item.mileageUsed ?? 0);
+  const couponDiscountAmount = Number(item.couponDiscountAmount ?? 0);
+  const originalAmount = totalPrice + mileageUsed + couponDiscountAmount;
+  const couponUsed = Boolean(item.userCouponNo);
 
   return {
     ...item,
@@ -49,10 +59,17 @@ function mapBookingItem(item) {
     status: item.status ?? item.bookingStatus ?? "PENDING",
     bookingStatus: item.bookingStatus ?? item.status ?? "PENDING",
     bookingStatusLabel: item.bookingStatusLabel ?? item.bookingStatus ?? item.status ?? "PENDING",
-    price: item.price ?? (item.totalPrice != null ? `${Number(item.totalPrice).toLocaleString()}원` : ""),
+    price: item.price ?? formatWonValue(totalPrice),
+    originalAmount,
+    couponUsed,
+    originalAmountText: formatWonValue(originalAmount),
+    finalAmountText: formatWonValue(totalPrice),
+    couponDiscountAmountText: couponDiscountAmount > 0 ? `-${couponDiscountAmount.toLocaleString()}\uC6D0` : "-",
+    mileageUsedAmountText: mileageUsed > 0 ? `-${mileageUsed.toLocaleString()}P` : "-",
+    couponUsedText: couponUsed ? "사용" : "미사용",
+    mileageUsedText: mileageUsed > 0 ? "사용" : "미사용",
   };
 }
-
 function mapPaymentItem(item) {
   if (!item) return item;
 
@@ -311,17 +328,17 @@ export async function getMyPaymentByBookingId(bookingId) {
 
 function resolveCouponTarget(name = "") {
   const lowerName = String(name).toLowerCase();
-  if (lowerName.includes("spring")) return "? ?? ??";
-  if (lowerName.includes("summer")) return "?? ?? ??";
-  if (lowerName.includes("fall") || lowerName.includes("autumn")) return "?? ?? ??";
-  if (lowerName.includes("first")) return "? ?? ??";
-  return "?? ??";
+  if (lowerName.includes("spring")) return "봄 시즌 혜택";
+  if (lowerName.includes("summer")) return "여름 시즌 혜택";
+  if (lowerName.includes("fall") || lowerName.includes("autumn")) return "가을 시즌 혜택";
+  if (lowerName.includes("first")) return "첫 예약 혜택";
+  return "국내 숙소";
 }
 
 function toCouponStatusLabel(status) {
-  if (status === "ACTIVE") return "?? ??";
-  if (status === "USED") return "?? ??";
-  return "?? ??";
+  if (status === "ACTIVE") return "사용 가능";
+  if (status === "USED") return "사용 완료";
+  return "만료 예정";
 }
 
 function formatDateValue(value) {
@@ -332,10 +349,10 @@ function formatDateValue(value) {
 }
 
 function formatExpiryLabel(value, status) {
-  if (status === "USED") return "?? ??";
+  if (status === "USED") return "사용 완료";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} ??`;
+  return `${String(date.getMonth() + 1).padStart(2, "0")}.${String(date.getDate()).padStart(2, "0")} 만료`;
 }
 
 function mapUserCouponDto(dto) {
@@ -368,26 +385,26 @@ function normalizeCouponStatus(item) {
   }
 
   const raw = `${item?.status ?? ""} ${item?.statusLabel ?? ""}`.toUpperCase();
-  if (raw.includes("USED") || raw.includes("?? ??".toUpperCase())) {
+  if (raw.includes("USED") || raw.includes("사용 완료".toUpperCase())) {
     return "USED";
   }
-  if (raw.includes("ACTIVE") || raw.includes("?? ??".toUpperCase())) {
+  if (raw.includes("ACTIVE") || raw.includes("사용 가능".toUpperCase())) {
     return "ACTIVE";
   }
   return "EXPIRING";
 }
 
 function toCouponStatusDisplay(status) {
-  if (status === "ACTIVE") return "?? ??";
-  if (status === "USED") return "?? ??";
-  return "?? ??";
+  if (status === "ACTIVE") return "사용 가능";
+  if (status === "USED") return "사용 완료";
+  return "만료 예정";
 }
 
 function mapMyCouponItem(item) {
   const normalizedStatus = normalizeCouponStatus(item);
   return {
-    id: item.id ?? item.userCouponId,
-    userCouponId: item.userCouponId ?? item.id,
+    id: item.id ?? item.userCouponId ?? item.userCouponNo,
+    userCouponId: item.userCouponId ?? item.userCouponNo ?? item.id,
     couponName: item.couponName ?? item.name,
     name: item.name ?? item.couponName,
     couponType: item.couponType,
@@ -533,6 +550,7 @@ export function updateInquiryThread(threadId, payload) {
 export function removeInquiryThread(threadId) {
   return del(`/api/inquiry/${threadId}`);
 }
+
 
 
 

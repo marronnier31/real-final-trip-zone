@@ -28,6 +28,7 @@ public class BookingDTO {
 	private Long discountAmount;
 	private Long mileageUsed;
 	private Long totalPrice;
+	private Long couponDiscountAmount;
 	private BookingStatus status;
 	private String requestMessage;
 	private LocalDateTime regDate;

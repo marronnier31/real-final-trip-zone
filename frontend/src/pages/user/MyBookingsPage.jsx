@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import MyPageLayout from "../../components/user/MyPageLayout";
-import {
-  BOOKING_STATUS_LABELS,
-  filterBookingRows,
-  getBookingTabSummary,
-} from "../../features/mypage/mypageViewModels";
+import { filterBookingRows, formatBookingStatusLabel, getBookingTabSummary } from "../../features/mypage/mypageViewModels";
 import { getCachedLodgingsSnapshot, getLodgings, LODGING_FALLBACK_IMAGE } from "../../services/lodgingService";
 import { getCachedMyBookingsSnapshot, getMyBookings } from "../../services/mypageService";
 
@@ -101,7 +97,9 @@ export default function MyBookingsPage() {
               <p>백엔드 예약 데이터와 숙소 정보를 동기화하고 있습니다.</p>
             </div>
           ) : null}
-          {filteredRows.map((item) => (
+          {filteredRows.map((item) => {
+            const statusLabel = formatBookingStatusLabel(item.status, item.bookingStatusLabel);
+            return (
             <article key={item.bookingId} className="booking-list-row">
               <div className="booking-list-media">
                 <img
@@ -114,6 +112,12 @@ export default function MyBookingsPage() {
                 />
               </div>
               <div className="booking-list-main">
+                <div className="booking-list-side-topline booking-list-row-head">
+                  <span className={`table-code code-${String(item.status ?? "").toLowerCase()}`}>
+                    {statusLabel}
+                  </span>
+                  <span>{item.bookingId}</span>
+                </div>
                 <div className="booking-list-copy">
                   <div className="payment-row-topline">
                     <span>{tab === "completed" ? "이용 일정" : "예약 일정"} {item.stay}</span>
@@ -124,13 +128,12 @@ export default function MyBookingsPage() {
                 </div>
               </div>
               <div className="booking-list-side">
-                <div className="booking-list-side-topline">
-                  <span className={`table-code code-${item.status.toLowerCase()}`}>
-                    {item.bookingStatusLabel ?? BOOKING_STATUS_LABELS[item.status]}
-                  </span>
-                  <span>{item.bookingId}</span>
-                </div>
                 <strong className="booking-list-amount">{item.price}</strong>
+                <div className="booking-list-copy">
+                  <p>원래 금액 {item.originalAmountText}</p>
+                  <p>최종결제 {item.finalAmountText}</p>
+                  <p>쿠폰 {item.couponUsedText} · 마일리지 {item.mileageUsedText}</p>
+                </div>
                 <div className="booking-list-links">
                   <Link className="coupon-action-button booking-action-button" to={`/my/bookings/${item.bookingId}`}>
                     예약 상세
@@ -143,7 +146,8 @@ export default function MyBookingsPage() {
                 </div>
               </div>
             </article>
-          ))}
+            );
+          })}
           {!isLoading && !filteredRows.length ? (
             <div className="my-empty-panel">
               <strong>{tab === "upcoming" ? "예정된 여행이 없습니다." : "이용완료 내역이 없습니다."}</strong>

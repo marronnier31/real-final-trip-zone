@@ -118,12 +118,12 @@ public class BookingServiceImpl implements BookingService {
 			DiscountType type = userCoupon.getCoupon().getDiscountType();
 			Long discountValue = userCoupon.getCoupon().getDiscountValue();
 
-			Long discountedPrice = type.calculate(roomPrice, discountValue);
+			Long discountedPrice = type.calculate(totalPrice, discountValue);
 			if (discountedPrice < 0) {
 				discountedPrice = 0L;
 			}
 
-			couponDiscountAmount = roomPrice - discountedPrice;
+			couponDiscountAmount = totalPrice - discountedPrice;
 			totalPrice = discountedPrice;
 		}
 
@@ -282,47 +282,58 @@ public class BookingServiceImpl implements BookingService {
 	}
 
 	public List<BookingDTO> entityToDTO(Page<Booking> result) {
-		return result.getContent().stream().map(booking -> BookingDTO.builder().bookingNo(booking.getBookingNo())
-				.userNo(booking.getUser().getUserNo()).roomNo(booking.getRoom().getRoomNo())
-				.userName(booking.getUser().getUserName()).lodgingName(booking.getRoom().getLodging().getLodgingName())
-				.userCouponNo(booking.getUserCoupon() != null ? booking.getUserCoupon().getUserCouponNo() : null)
-				.roomName(booking.getRoom().getRoomName()).checkInDate(booking.getCheckInDate())
-				.checkOutDate(booking.getCheckOutDate()).guestCount(booking.getGuestCount())
-				.pricePerNight(booking.getPricePerNight()).discountAmount(booking.getDiscountAmount())
-				.mileageUsed(booking.getMileageUsed())
-				.totalPrice(booking.getTotalPrice()).status(booking.getStatus())
-				.requestMessage(booking.getRequestMessage()).regDate(booking.getRegDate())
-				.bookingId("B-" + booking.getBookingNo())
-				.lodgingId(booking.getRoom().getLodging().getLodgingNo())
-				.stay(formatStay(booking.getCheckInDate(), booking.getCheckOutDate()))
-				.bookingStatus(booking.getStatus().name())
-				.bookingStatusLabel(booking.getStatus().name())
-				.price(formatWon(defaultLong(booking.getTotalPrice())))
-				.canCancel(booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.CONFIRMED)
-				.canReview(booking.getStatus() == BookingStatus.COMPLETED)
-				.canViewPayment(paymentRepository.findFirstByBooking_BookingNoOrderByPaymentNoDesc(booking.getBookingNo()).isPresent())
-				.build())
-				.collect(Collectors.toList());
+		return result.getContent().stream().map(booking -> {
+			long totalPrice = defaultLong(booking.getTotalPrice());
+			long mileageUsed = defaultLong(booking.getMileageUsed());
+			long discountAmount = defaultLong(booking.getDiscountAmount());
+			long couponDiscountAmount = Math.max(discountAmount - mileageUsed, 0L);
+
+			return BookingDTO.builder().bookingNo(booking.getBookingNo())
+					.userNo(booking.getUser().getUserNo()).roomNo(booking.getRoom().getRoomNo())
+					.userName(booking.getUser().getUserName()).lodgingName(booking.getRoom().getLodging().getLodgingName())
+					.userCouponNo(booking.getUserCoupon() != null ? booking.getUserCoupon().getUserCouponNo() : null)
+					.roomName(booking.getRoom().getRoomName()).checkInDate(booking.getCheckInDate())
+					.checkOutDate(booking.getCheckOutDate()).guestCount(booking.getGuestCount())
+					.pricePerNight(booking.getPricePerNight()).discountAmount(booking.getDiscountAmount())
+					.mileageUsed(booking.getMileageUsed()).totalPrice(booking.getTotalPrice())
+					.couponDiscountAmount(couponDiscountAmount)
+					.status(booking.getStatus()).requestMessage(booking.getRequestMessage()).regDate(booking.getRegDate())
+					.bookingId("B-" + booking.getBookingNo())
+					.lodgingId(booking.getRoom().getLodging().getLodgingNo())
+					.stay(formatStay(booking.getCheckInDate(), booking.getCheckOutDate()))
+					.bookingStatus(booking.getStatus().name())
+					.bookingStatusLabel(booking.getStatus().name())
+					.price(formatWon(totalPrice))
+					.canCancel(booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.CONFIRMED)
+					.canReview(booking.getStatus() == BookingStatus.COMPLETED)
+					.canViewPayment(paymentRepository.findFirstByBooking_BookingNoOrderByPaymentNoDesc(booking.getBookingNo()).isPresent())
+					.build();
+		}).collect(Collectors.toList());
 	}
 
 	public BookingDTO entityToDTO(Long bookingNo) {
 		Optional<Booking> result = repository.findById(bookingNo);
 		Booking booking = result.orElseThrow(() -> new IllegalArgumentException("존재하지 않는 예약번호입니다."));
+		long totalPrice = defaultLong(booking.getTotalPrice());
+		long mileageUsed = defaultLong(booking.getMileageUsed());
+		long discountAmount = defaultLong(booking.getDiscountAmount());
+		long couponDiscountAmount = Math.max(discountAmount - mileageUsed, 0L);
 		return BookingDTO.builder().bookingNo(booking.getBookingNo()).userNo(booking.getUser().getUserNo())
-				.roomNo(booking.getRoom().getRoomNo()).lodgingName(booking.getRoom().getLodging().getLodgingName())
+				.roomNo(booking.getRoom().getRoomNo()).userName(booking.getUser().getUserName())
+				.lodgingName(booking.getRoom().getLodging().getLodgingName())
 				.userCouponNo(booking.getUserCoupon() != null ? booking.getUserCoupon().getUserCouponNo() : null)
 				.roomName(booking.getRoom().getRoomName()).checkInDate(booking.getCheckInDate())
 				.checkOutDate(booking.getCheckOutDate()).guestCount(booking.getGuestCount())
 				.pricePerNight(booking.getPricePerNight()).discountAmount(booking.getDiscountAmount())
 				.mileageUsed(booking.getMileageUsed())
-				.totalPrice(booking.getTotalPrice()).status(booking.getStatus())
+				.totalPrice(booking.getTotalPrice()).couponDiscountAmount(couponDiscountAmount).status(booking.getStatus())
 				.requestMessage(booking.getRequestMessage()).regDate(booking.getRegDate())
 				.bookingId("B-" + booking.getBookingNo())
 				.lodgingId(booking.getRoom().getLodging().getLodgingNo())
 				.stay(formatStay(booking.getCheckInDate(), booking.getCheckOutDate()))
 				.bookingStatus(booking.getStatus().name())
 				.bookingStatusLabel(booking.getStatus().name())
-				.price(formatWon(defaultLong(booking.getTotalPrice())))
+				.price(formatWon(totalPrice))
 				.canCancel(booking.getStatus() == BookingStatus.PENDING || booking.getStatus() == BookingStatus.CONFIRMED)
 				.canReview(booking.getStatus() == BookingStatus.COMPLETED)
 				.canViewPayment(paymentRepository.findFirstByBooking_BookingNoOrderByPaymentNoDesc(booking.getBookingNo()).isPresent())

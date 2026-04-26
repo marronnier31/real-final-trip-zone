@@ -296,7 +296,6 @@ export function BookingSummarySection({
           <span>
             {lodging.region} · {lodging.district}
           </span>
-          <span>{lodging.reviewCount}개</span>
         </div>
         <span className="small-label">1박 기준 {baseAmount.toLocaleString()}원</span>
         <strong>{totalAmount.toLocaleString()}원</strong>

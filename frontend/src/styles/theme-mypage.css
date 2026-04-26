@@ -2446,6 +2446,10 @@
   font-weight: 700;
 }
 
+.booking-list-row-head {
+  justify-content: flex-start;
+}
+
 .booking-list-amount {
   font-size: 16px;
   line-height: 1.1;

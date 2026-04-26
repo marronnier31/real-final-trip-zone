@@ -60,6 +60,14 @@ export default function MyBookingDetailPage() {
     { label: "결제 수단", value: payment?.detail ?? "결제 정보 없음" },
     { label: "취소 규정", value: lodging?.cancellation ?? "확인 필요" },
   ];
+  const paymentItems = [
+    { label: "원래 금액", value: booking.originalAmountText },
+    { label: "쿠폰 할인", value: booking.couponDiscountAmountText },
+    { label: "마일리지 사용", value: booking.mileageUsedAmountText },
+    { label: "최종결제 금액", value: booking.finalAmountText },
+    { label: "쿠폰 사용", value: booking.couponUsedText },
+    { label: "마일리지 사용 여부", value: booking.mileageUsedText },
+  ];
 
   return (
     <MyPageLayout>
@@ -98,6 +106,15 @@ export default function MyBookingDetailPage() {
 
         <div className="booking-detail-overview">
           {overviewItems.map((item) => (
+            <div key={item.label} className="booking-detail-overview-item">
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div className="booking-detail-overview">
+          {paymentItems.map((item) => (
             <div key={item.label} className="booking-detail-overview-item">
               <span>{item.label}</span>
               <strong>{item.value}</strong>

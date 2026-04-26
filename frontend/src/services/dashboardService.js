@@ -179,6 +179,10 @@ function mapReservationDto(dto) {
   const guestName = dto.userName ?? dto.guestName ?? (dto.userNo ? `회원 ${dto.userNo}` : "-");
   const lodgingName = dto.lodgingName ?? dto.accommodationName ?? "숙소 확인";
   const roomName = dto.roomName ?? dto.productName ?? "객실 확인";
+  const totalPrice = Number(dto.totalPrice ?? 0);
+  const mileageUsed = Number(dto.mileageUsed ?? 0);
+  const couponDiscountAmount = Number(dto.couponDiscountAmount ?? 0);
+  const originalAmount = totalPrice + mileageUsed + couponDiscountAmount;
 
   return {
     id: bookingNo,
@@ -188,9 +192,14 @@ function mapReservationDto(dto) {
     lodging: lodgingName,
     stay: `${formatDateLabel(dto.checkInDate)} - ${formatDateLabel(dto.checkOutDate)}`,
     status: dto.status ?? "PENDING",
-    amount: formatMoney(dto.totalPrice),
+    amount: formatMoney(totalPrice),
     detail: `${lodgingName} · ${roomName}`,
     requestMessage: dto.requestMessage ?? "",
+    totalPrice,
+    mileageUsed,
+    couponDiscountAmount,
+    originalAmount,
+    couponUsed: Boolean(dto.userCouponNo),
   };
 }
 

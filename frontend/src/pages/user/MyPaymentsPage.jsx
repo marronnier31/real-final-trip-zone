@@ -87,7 +87,9 @@ export default function MyPaymentsPage() {
               <p>예약과 결제 데이터를 함께 불러오고 있습니다.</p>
             </div>
           ) : null}
-          {paymentHistoryRows.map((item) => (
+          {paymentHistoryRows.map((item) => {
+            const booking = myBookingRows.find((row) => row.bookingId === item.bookingId);
+            return (
             <article key={item.bookingNo} className="payment-row">
               <div className="payment-row-main">
                 <div className="payment-row-copy">
@@ -95,10 +97,12 @@ export default function MyPaymentsPage() {
                     <span className={`table-code code-${item.status.toLowerCase()}`}>
                       {getPaymentStatusLabel(item.status)}
                     </span>
-                    <span>{item.bookingNo}</span>
+                    <span>{item.bookingId ?? (item.bookingNo != null ? `B-${item.bookingNo}` : "-")}</span>
                   </div>
                   <strong>{item.lodgingName}</strong>
                   <p>{item.detail}</p>
+                  {booking ? <p>원래 금액 {booking.originalAmountText} · 최종결제 {booking.finalAmountText}</p> : null}
+                  {booking ? <p>쿠폰 {booking.couponUsedText} · 마일리지 {booking.mileageUsedText}</p> : null}
                 </div>
               </div>
               <div className="payment-row-side">
@@ -113,7 +117,8 @@ export default function MyPaymentsPage() {
                 })()}
               </div>
             </article>
-          ))}
+            );
+          })}
           {!isLoading && !paymentHistoryRows.length ? (
             <div className="my-empty-panel">
               <strong>결제 내역이 없습니다.</strong>

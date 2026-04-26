@@ -174,7 +174,8 @@ export default function BookingPage() {
     lodging,
     form,
     selectedCoupon,
-    mileageBalance
+    mileageBalance,
+    selectedRoom
   );
   const canSubmit = Boolean(authSession && selectedRoom && !isSubmitting);
 

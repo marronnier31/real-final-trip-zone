@@ -127,7 +127,7 @@ export default function SellerReservationsPage() {
               onClick={() => moveToPage(Math.max(1, currentGroup * PAGE_GROUP_SIZE))}
               disabled={currentGroup === 0}
             >
-              ←
+              이전
             </button>
             <div className="seller-pagination-pages">
               {pageNumbers.map((pageNumber) => (
@@ -147,14 +147,14 @@ export default function SellerReservationsPage() {
               onClick={() => moveToPage(Math.min(totalPages, (currentGroup + 1) * PAGE_GROUP_SIZE + 1))}
               disabled={pageNumbers[pageNumbers.length - 1] >= totalPages}
             >
-              →
+              다음
             </button>
           </div>
         </section>
 
         <aside className="saas-bento-panel">
           <div className="saas-bento-head">
-            <strong>{selected?.no ? `예약 ${selected.no}` : "예약을 선택해 주세요"}</strong>
+            <strong>{selected?.no ? `예약 ${selected.no}` : "예약을 선택해 주세요."}</strong>
             {selected ? <p>{selected.guest} · {selected.lodging} · {selected.stay}</p> : null}
           </div>
           <div className="dash-chips">
@@ -189,7 +189,23 @@ export default function SellerReservationsPage() {
               <input value={selected?.amount ?? ""} readOnly />
             </label>
             <label className="saas-field">
-              <span>요청 메시지</span>
+              <span>원래 금액</span>
+              <input value={selected ? `${selected.originalAmount.toLocaleString()}\uC6D0` : ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>최종결제 금액</span>
+              <input value={selected ? `${selected.totalPrice.toLocaleString()}\uC6D0` : ""} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>쿠폰 사용</span>
+              <input value={selected?.couponUsed ? "사용" : "미사용"} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>마일리지 사용</span>
+              <input value={selected?.mileageUsed > 0 ? "사용" : "미사용"} readOnly />
+            </label>
+            <label className="saas-field">
+              <span>요청사항</span>
               <textarea rows={4} value={selected?.requestMessage?.trim() ? selected.requestMessage : "없음"} readOnly />
             </label>
             <label className="saas-field">

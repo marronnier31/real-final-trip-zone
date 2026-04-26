@@ -1,9 +1,26 @@
 ﻿export const BOOKING_STATUS_LABELS = {
-  CONFIRMED: "확정",
-  PENDING: "대기",
-  COMPLETED: "숙박 완료",
-  CANCELED: "예약 취소",
+  CONFIRMED: "예약확정",
+  PENDING: "예약대기",
+  COMPLETED: "숙박완료",
+  CANCELED: "예약취소",
 };
+
+export function formatBookingStatusLabel(status = "", fallback = "") {
+  const normalized = String(status ?? "").trim().toUpperCase();
+  if (BOOKING_STATUS_LABELS[normalized]) {
+    return BOOKING_STATUS_LABELS[normalized];
+  }
+  if (normalized === "CANCELLED") {
+    return BOOKING_STATUS_LABELS.CANCELED;
+  }
+
+  const normalizedFallback = String(fallback ?? "").trim().toUpperCase();
+  if (BOOKING_STATUS_LABELS[normalizedFallback]) {
+    return BOOKING_STATUS_LABELS[normalizedFallback];
+  }
+
+  return fallback || status || "-";
+}
 
 export const INQUIRY_STATUS_LABELS = {
   OPEN: "접수",

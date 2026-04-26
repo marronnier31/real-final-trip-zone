@@ -76,13 +76,14 @@ export function getBookingSelections(form, couponOptions, paymentOptions) {
   };
 }
 
-export function buildBookingPricing(lodging, form, selectedCoupon, mileageBalance = 0) {
-  const baseAmount = Number(String(lodging.price).replace(/[^\d]/g, ""));
+export function buildBookingPricing(lodging, form, selectedCoupon, mileageBalance = 0, selectedRoom = null) {
+  const baseAmount = Number(selectedRoom?.pricePerNight ?? String(lodging.price).replace(/[^\d]/g, ""));
   const checkInDate = new Date(form.checkIn);
   const checkOutDate = new Date(form.checkOut);
   const nightCount = Math.max(1, Math.round((checkOutDate.getTime() - checkInDate.getTime()) / 86400000));
+  const guestCount = Math.max(1, Number(form.guests ?? 1));
   const serviceFee = 0;
-  const roomTotal = baseAmount * nightCount;
+  const roomTotal = baseAmount * nightCount * guestCount;
   const rawCouponDiscount =
     isPercentDiscountType(selectedCoupon.discountType)
       ? Math.floor((roomTotal * Number(selectedCoupon.discount ?? 0)) / 100)
